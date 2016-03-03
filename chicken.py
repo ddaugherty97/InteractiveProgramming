@@ -124,9 +124,9 @@ class Hawk(object):
 			self.xvel = xvel	
 
 		if self.ypos > SCREEN_H/2:	
-			self.yvel = -1 * 2
+			self.yvel = -1 * 7
 		else:
-			self.yvel = 2
+			self.yvel = 7
 
 		self.window.blit(self.hawk, (self.xpos, self.ypos))
 
@@ -136,9 +136,9 @@ class Hawk(object):
 	def update(self, chicken):
 		x_diff = chicken.xpos - self.xpos
 		y_diff = chicken.ypos - self.ypos
-		vector_mag = math.sqrt(x_diff**2 + y_diff **2)
-		self.xvel = self.xvel + x_diff/vector_mag
-		self.yvel = self.yvel + y_diff/vector_mag
+		vector_mag = math.sqrt(x_diff**2 + y_diff**2) * 5
+		self.xvel = self.xvel + x_diff / vector_mag  
+		self.yvel = self.yvel + y_diff / vector_mag
 
 		self.xpos += self.xvel
 		self.ypos += self.yvel
@@ -156,6 +156,7 @@ class ChickenView(object):
 
 class ChickenController(object):
 	pass
+	
 
 class ChickenMain(object):
 
@@ -210,9 +211,9 @@ class ChickenMain(object):
 			for i in range(len(hawkfleet)):
 				if not hawkfleet[i].is_in_range():
 					 if random.choice([True, False]):
-					 	hawkfleet[i] = Hawk(self.window, random.randint(-150,SCREEN_W), random.randint(1,2), True)
+					 	hawkfleet[i] = Hawk(self.window, random.randint(-150,SCREEN_W), random.randint(1,7), True)
 					 else:
-					 	hawkfleet[i] = Hawk(self.window, random.randint(-150,SCREEN_H), random.randint(1,2), False)
+					 	hawkfleet[i] = Hawk(self.window, random.randint(-150,SCREEN_H), random.randint(1,7), False)
 
 				hawkfleet[i].update(chicken1)	
 				
@@ -230,6 +231,3 @@ class ChickenMain(object):
 if __name__ == '__main__':
 	MainWindow = ChickenMain()
 	MainWindow.MainLoop()
-
-
-			
