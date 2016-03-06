@@ -240,7 +240,7 @@ class Flock():
 		
 
 	def update(self, chicken, dt):		
-	"""
+		"""
 		Updates hawks in the flock, checks if they're still in range
 		"""
 
@@ -249,7 +249,6 @@ class Flock():
 			if not hawk.is_in_range():
 				hawk.kill()
 				self.num_hawks -= 1
-				print "removed"
 
 				if random.choice([True, False]):
 					Hawk(random.randint(-150,SCREEN_W), random.randint(1,7), True).add(self.hawkfleet)
