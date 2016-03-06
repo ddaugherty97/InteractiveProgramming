@@ -381,13 +381,13 @@ class ChickenController:
 
 			elif event.type == pygame.KEYUP:
 				k = event.key
-				if k == pygame.K_DOWN:
+				if k == pygame.K_DOWN and self.model.chicken.yvel == 10:
 					self.model.chicken.yvel = 0		
-				if k == pygame.K_UP:
+				if k == pygame.K_UP and self.model.chicken.yvel == -10:
 					self.model.chicken.yvel = 0		
-				if k == pygame.K_LEFT:
+				if k == pygame.K_LEFT and self.model.chicken.xvel == -10:
 					self.model.chicken.xvel = 0		
-				if k == pygame.K_RIGHT:
+				if k == pygame.K_RIGHT and self.model.chicken.xvel == 10:
 					self.model.chicken.xvel = 0				
 
 		return self.done								
