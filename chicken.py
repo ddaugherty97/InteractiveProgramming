@@ -150,11 +150,13 @@ class Hawk(pygame.sprite.Sprite):
 		self.index = 0
 		self.animation_speed = 0.10
 
-		self.width = 75
-		self.height = 60
+		self.width = 82
+		self.height = 67
 
 		self.sheet.set_clip(pygame.Rect(self.index * self.width, self.sprite_num * self.height, self.width, self.height))
 		self.image = self.sheet.subsurface(self.sheet.get_clip())
+		self.image.set_colorkey((0,255,0))
+		self.image = pygame.transform.scale(self.image, (300,300))
 		self.index += 1
 		
 
@@ -175,7 +177,8 @@ class Hawk(pygame.sprite.Sprite):
 		if  self.xpos > SCREEN_W/2:
 			self.xvel = -1 * xvel
 		else:
-			self.image = pygame.transform.flip(self.image, True, False)
+			# self.image = pygame.transform.flip(self.image, True, False)
+			self.sprite_num = 1
 			self.xvel = xvel	
 
 		if self.ypos > SCREEN_H/2:	
@@ -207,11 +210,17 @@ class Hawk(pygame.sprite.Sprite):
 			self.dt_image = 0
 			self.sheet.set_clip(pygame.Rect(self.index * self.width, self.sprite_num * self.height, self.width, self.height))
 			self.image = self.sheet.subsurface(self.sheet.get_clip())
+		self.image.set_colorkey((0,255,0))
+		self.image = pygame.transform.scale(self.image, (150,150))
 
 		x_diff = chicken.rect.right - self.rect.right
 		y_diff = chicken.rect.top - self.rect.top
 		vector_mag = math.sqrt(x_diff**2 + y_diff**2) * 5
-		self.xvel = self.xvel + x_diff / vector_mag  
+		self.xvel = self.xvel + x_diff / vector_mag 
+		if self.xvel < 0:
+			self.sprite_num = 2
+		else:
+			self.sprite_num = 1 
 		self.yvel = self.yvel + y_diff / vector_mag
 
 		self.rect = self.rect.move(self.xvel, self.yvel)
