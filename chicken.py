@@ -46,7 +46,7 @@ class Cloud(pygame.sprite.Sprite):
 
 	def is_in_range(self):
 		
-		return self.ypos > -100	
+		return self.rect.top > -100	
 
 	def update(self):
 		"""
@@ -82,8 +82,8 @@ class Sky():
 		"""
 		for cloud in self.clouds:
 			if not cloud.is_in_range():
-				self.clouds.remove(cloud)
-				self.clouds.add(Cloud(random.randint(0,SCREEN_W), SCREEN_H))
+				cloud.kill()
+				Cloud(random.randint(0,SCREEN_W), SCREEN_H).add(self.clouds)
 
 		for cloud in self.clouds:
 			cloud.update()
@@ -178,7 +178,7 @@ class Hawk(pygame.sprite.Sprite):
 		"""
 		Checks if still within screen boundaries
 		"""
-		return self.xpos <= SCREEN_W +150 and self.xpos >= -150 and self.ypos <= SCREEN_H+150 and self.ypos >= -150	
+		return self.rect.right <= SCREEN_W +150 and self.rect.left >= -150 and self.rect.bottom <= SCREEN_H+150 and self.rect.top >= -150	
 
 	def update(self, chicken):
 		"""
@@ -186,8 +186,8 @@ class Hawk(pygame.sprite.Sprite):
 		"""
 
 
-		x_diff = chicken.xpos - self.xpos
-		y_diff = chicken.ypos - self.ypos
+		x_diff = chicken.rect.right - self.rect.right
+		y_diff = chicken.rect.top - self.rect.top
 		vector_mag = math.sqrt(x_diff**2 + y_diff**2) * 5
 		self.xvel = self.xvel + x_diff / vector_mag  
 		self.yvel = self.yvel + y_diff / vector_mag
@@ -211,9 +211,10 @@ class Flock():
 		self.num_hawks = 0
 
 		for i in range(1):
-			self.hawkfleet.add(Hawk(random.randint(-150,SCREEN_H), random.randint(1, 7), True))
-			self.hawkfleet.add(Hawk(random.randint(-150,SCREEN_W), random.randint(1, 7), False))
+			Hawk(random.randint(-150,SCREEN_H), random.randint(1, 7), True).add(self.hawkfleet)
+			Hawk(random.randint(-150,SCREEN_W), random.randint(1, 7), False).add(self.hawkfleet)
 			self.num_hawks += 2
+
 
 	def update(self, chicken):		
 		"""
@@ -222,13 +223,17 @@ class Flock():
 
 
 		for hawk in self.hawkfleet:
-				if not hawk.is_in_range():
-					hawkfleet.remove(hawk)	
+			if not hawk.is_in_range():
+				hawk.kill()
+				self.num_hawks -= 1
+				print "removed"
 
-					if random.choice([True, False]):
-						hawkfleet.add(Hawk(random.randint(-150,SCREEN_W), random.randint(1,7), True))
-					else:
-						hawkfleet.add(Hawk(random.randint(-150,SCREEN_H), random.randint(1,7), False))
+				if random.choice([True, False]):
+					Hawk(random.randint(-150,SCREEN_W), random.randint(1,7), True).add(self.hawkfleet)
+					self.num_hawks += 1
+				else:
+					Hawk(random.randint(-150,SCREEN_H), random.randint(1,7), False).add(self.hawkfleet)
+					self.num_hawks += 1
 
 		for hawk in self.hawkfleet:
 			hawk.update(chicken)	
@@ -326,17 +331,17 @@ class ChickenController:
 			elif event.type == pygame.KEYDOWN:	
 				k = event.key
 
-				if k == pygame.K_DOWN and self.model.chicken.ypos <= SCREEN_H - 100:
+				if k == pygame.K_DOWN and self.model.chicken.rect.bottom <= SCREEN_H - 100:
 					self.model.chicken.yvel = 10
 
-				if k == pygame.K_UP and self.model.chicken.ypos >= 0:
+				if k == pygame.K_UP and self.model.chicken.rect.top >= 0:
 					self.model.chicken.yvel = -10
 
-				if k == pygame.K_RIGHT and self.model.chicken.xpos <= SCREEN_W - 100:
+				if k == pygame.K_RIGHT and self.model.chicken.rect.right <= SCREEN_W - 100:
 					self.model.chicken.image = self.model.chicken.chickenFlip
 					self.model.chicken.xvel = 10
 
-				if k == pygame.K_LEFT and self.model.chicken.xpos >= 0:
+				if k == pygame.K_LEFT and self.model.chicken.rect.left >= 0:
 					self.model.chicken.image = self.model.chicken.chickenObj
 					self.model.chicken.xvel = -10
 
