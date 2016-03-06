@@ -140,11 +140,24 @@ class Hawk(pygame.sprite.Sprite):
 	def __init__(self, pos, xvel, top_hawk):
 		pygame.sprite.Sprite.__init__(self)
 
-		self.image = pygame.image.load('hawk.png')
-		self.image.set_colorkey((255,255,255))
-		self.image = pygame.transform.scale(self.image, (150,150))
+		# self.image = pygame.image.load('hawk.png')
+		# self.image.set_colorkey((255,255,255))
+		# self.image = pygame.transform.scale(self.image, (150,150))
 		#self.image.convert()
+		self.sheet = pygame.image.load('hawkspritesheet.png')
+		self.sprite_num = 2
+		self.dt_image = 0.0
+		self.index = 0
+		self.animation_speed = 0.10
+
+		self.width = 75
+		self.height = 60
+
+		self.sheet.set_clip(pygame.Rect(self.index * self.width, self.sprite_num * self.height, self.width, self.height))
+		self.image = self.sheet.subsurface(self.sheet.get_clip())
+		self.index += 1
 		
+
 		if top_hawk:
 			self.ypos = pos
 			if pos == -150 or pos == SCREEN_H:
@@ -178,13 +191,21 @@ class Hawk(pygame.sprite.Sprite):
 		"""
 		Checks if still within screen boundaries
 		"""
-		return self.xpos <= SCREEN_W +150 and self.xpos >= -150 and self.ypos <= SCREEN_H+150 and self.ypos >= -150	
+		return self.xpos <= SCREEN_W + 150 and self.xpos >= -150 and self.ypos <= SCREEN_H+150 and self.ypos >= -150	
 
-	def update(self, chicken):
+	def update(self, chicken, dt):
 		"""
 		Updates hawks to chase the chicken
 		"""
 
+		self.dt_image += dt
+		if self.dt_image > self.animation_speed:
+			self.index += 1
+			if self.index >= 4:
+				self.index = 0
+			self.dt_image = 0
+			self.sheet.set_clip(pygame.Rect(self.index * self.width, self.sprite_num * self.height, self.width, self.height))
+			self.image = self.sheet.subsurface(self.sheet.get_clip())
 
 		x_diff = chicken.xpos - self.xpos
 		y_diff = chicken.ypos - self.ypos
@@ -215,7 +236,7 @@ class Flock():
 			self.hawkfleet.add(Hawk(random.randint(-150,SCREEN_W), random.randint(1, 7), False))
 			self.num_hawks += 2
 
-	def update(self, chicken):		
+	def update(self, chicken, dt):		
 		"""
 		Updates hawks in the flock, checks if they're still in range
 		"""
@@ -231,7 +252,7 @@ class Flock():
 						hawkfleet.add(Hawk(random.randint(-150,SCREEN_H), random.randint(1,7), False))
 
 		for hawk in self.hawkfleet:
-			hawk.update(chicken)	
+			hawk.update(chicken, dt)	
 
 
 
@@ -254,14 +275,14 @@ class ChickenModel:
 
 		self.sky = Sky(self)
 
-	def update(self):
+	def update(self, dt):
 		"""
 		Updates all the stuff
 		"""
 
 		self.sky.update()
 		self.chicken_sprite.update()
-		self.hawks.update(self.chicken)
+		self.hawks.update(self.chicken, dt)
 	
 
 	def get_drawables(self):
@@ -382,6 +403,7 @@ class ChickenMain(object):
 
 		lastGetTicks = pygame.time.get_ticks()
 
+
 		done = False
 
 
@@ -392,7 +414,7 @@ class ChickenMain(object):
 			lastGetTicks = t
 
 			done = self.controller.process_events()
-			self.model.update()
+			self.model.update(dt)
 			self.view.draw()
 
 			self.clock.tick(FRAMERATE)		
