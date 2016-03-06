@@ -150,8 +150,8 @@ class Hawk(pygame.sprite.Sprite):
 		self.index = 0
 		self.animation_speed = 0.10
 
-		self.width = 82
-		self.height = 67
+		self.width = 85
+		self.height = 70
 
 		self.sheet.set_clip(pygame.Rect(self.index * self.width, self.sprite_num * self.height, self.width, self.height))
 		self.image = self.sheet.subsurface(self.sheet.get_clip())
