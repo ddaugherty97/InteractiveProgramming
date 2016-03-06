@@ -56,7 +56,7 @@ class Cloud(pygame.sprite.Sprite):
 		
 
 		#self.ypos -= self.yvel
-		self.rect.move(0, self.yvel)
+		self.rect = self.rect.move(0, -self.yvel)
 		#self.window.blit(self.cloudObj, (self.xpos, self.ypos))
 
 
@@ -73,7 +73,7 @@ class Sky():
 		self.num_clouds = 0
 
 		for i in range(10):
-			self.clouds.add(Cloud(random.randint(0,SCREEN_H), random.randint(0,SCREEN_W)))
+			self.clouds.add(Cloud(random.randint(0,SCREEN_W), random.randint(0,SCREEN_H)))
 			self.num_clouds += 1
 
 	def update(self):	
@@ -82,8 +82,8 @@ class Sky():
 		"""
 		for cloud in self.clouds:
 			if not cloud.is_in_range():
-				clouds.remove(cloud)
-				clouds.add(Cloud(random.randint(0,SCREEN_W), SCREEN_H))
+				self.clouds.remove(cloud)
+				self.clouds.add(Cloud(random.randint(0,SCREEN_W), SCREEN_H))
 
 		for cloud in self.clouds:
 			cloud.update()
@@ -109,14 +109,14 @@ class Chicken(pygame.sprite.Sprite):
 		
 		self.xpos = SCREEN_W/2 -50
 		self.ypos = 10
-		self.xvel = 10
-		self.yvel = 10
+		self.xvel = 0
+		self.yvel = 0
 		self.rect = pygame.Rect(self.xpos, self.ypos, 100, 100)
 	
 
 
 	def move(self, xvel, yvel):
-		self.rect.move(xvel, yvel)
+		self.rect = self.rect.move(xvel, yvel)
 		
 
 	def update(self):
@@ -192,7 +192,7 @@ class Hawk(pygame.sprite.Sprite):
 		self.xvel = self.xvel + x_diff / vector_mag  
 		self.yvel = self.yvel + y_diff / vector_mag
 
-		self.rect.move(self.xvel, self.yvel)
+		self.rect = self.rect.move(self.xvel, self.yvel)
 		#self.window.blit(self.hawk, (self.xpos, self.ypos))
 
 
@@ -259,16 +259,16 @@ class ChickenModel:
 		Updates all the stuff
 		"""
 
-
+		self.sky.update()
 		self.chicken_sprite.update()
 		self.hawks.update(self.chicken)
-		self.sky.update()
+	
 
 	def get_drawables(self):
 		"""
 		Gives a list of things to draw in view
 		"""
-		return [self.chicken_sprite, self.hawks.hawkfleet, self.sky.clouds]
+		return [self.sky.clouds, self.hawks.hawkfleet, self.chicken_sprite]
 
 
 
