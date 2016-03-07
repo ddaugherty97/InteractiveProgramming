@@ -20,6 +20,7 @@ SCREEN_W = 1600
 SCREEN_H = 900
 
 
+CURR_DIR = os.path.dirname(os.path.realpath(__file__))
 
 
 
@@ -106,29 +107,63 @@ class Chicken(pygame.sprite.Sprite):
 		#self.chickenObj.convert()
 		self.chickenFlip = pygame.transform.flip(self.chickenObj, True, False)
 		self.image = self.chickenObj
+
+		self.alive = True # the chicken's life
 		
 		self.xpos = SCREEN_W/2 -50
 		self.ypos = 10
 		self.xvel = 0
 		self.yvel = 0
 		self.rect = pygame.Rect(self.xpos, self.ypos, 100, 100)
+		self.hitbox = pygame.Rect(self.xpos + 12.5, self.ypos + 12.5, 75, 75)
 	
 
 
 	def move(self, xvel, yvel):
-		self.rect = self.rect.move(xvel, yvel)
-		
+		"""
+		Moves the chicken around based on its rectangle
+		"""
+		if self.alive:
+			if not self.rect.right <= SCREEN_W: 
+				self.rect.right = SCREEN_W -1
+			if not self.rect.left >= 0:
+				self.rect.left = 1	
+			if not self.rect.top >= 0:
+				self.rect.top = 1
+			if not self.rect.bottom <= SCREEN_H:	
+				self.rect.bottom = SCREEN_H -1
 
-	def update(self):
+		self.rect = self.rect.move(xvel, yvel)
+		self.hitbox = self.hitbox.move(xvel, yvel)
+
+
+	def update(self, hawks):
 		"""
 		Moves the chicken
 		"""
+
+		self.correct_boxes()
 		self.move(self.xvel, self.yvel)
+		self.collide(hawks)
 
-		#self.window.fill(pygame.Color(135, 206, 250), pygame.Rect(self.xpos, self.ypos, 100,100))
-		
+	def collide(self, hawks):
+		"""
+		Checks for collisions with hawks and chickens
+		"""
 
-		#self.window.blit(self.chicken, (self.xpos, self.ypos))
+		for hawk in hawks:
+			if self.hitbox.colliderect(hawk.hitbox):
+				self.alive = False
+				self.yvel = 5
+				self.xvel = 0
+
+	def correct_boxes(self):
+		"""
+		Corrects the hitboxes in case of mishaps
+		"""
+		self.hitbox.top = self.rect.top + 12.5
+		self.hitbox.right = self.rect.right -12.5			
+
 
 
 
@@ -151,12 +186,12 @@ class Hawk(pygame.sprite.Sprite):
 		self.animation_speed = 0.10
 
 		self.width = 85
-		self.height = 70
+		self.height = 69.95
 
 		self.sheet.set_clip(pygame.Rect(self.index * self.width, self.sprite_num * self.height, self.width, self.height))
 		self.image = self.sheet.subsurface(self.sheet.get_clip())
 		self.image.set_colorkey((0,255,0))
-		self.image = pygame.transform.scale(self.image, (300,300))
+		self.image = pygame.transform.scale(self.image, (150,150))
 		self.index += 1
 		
 
@@ -187,8 +222,7 @@ class Hawk(pygame.sprite.Sprite):
 			self.yvel = 7
 
 		self.rect = pygame.Rect(self.xpos, self.ypos, 150, 150)	
-
-		#self.window.blit(self.hawk, (self.xpos, self.ypos))
+		self.hitbox = pygame.Rect(self.xpos + 18.75, self.ypos + 18.75, 112.5, 112.5)
 
 	def is_in_range(self):
 		"""
@@ -203,15 +237,6 @@ class Hawk(pygame.sprite.Sprite):
 		"""
 
 		self.dt_image += dt
-		if self.dt_image > self.animation_speed:
-			self.index += 1
-			if self.index >= 4:
-				self.index = 0
-			self.dt_image = 0
-			self.sheet.set_clip(pygame.Rect(self.index * self.width, self.sprite_num * self.height, self.width, self.height))
-			self.image = self.sheet.subsurface(self.sheet.get_clip())
-		self.image.set_colorkey((0,255,0))
-		self.image = pygame.transform.scale(self.image, (150,150))
 
 		x_diff = chicken.rect.right - self.rect.right
 		y_diff = chicken.rect.top - self.rect.top
@@ -224,7 +249,19 @@ class Hawk(pygame.sprite.Sprite):
 		self.yvel = self.yvel + y_diff / vector_mag
 
 		self.rect = self.rect.move(self.xvel, self.yvel)
-		#self.window.blit(self.hawk, (self.xpos, self.ypos))
+		self.hitbox = self.hitbox.move(self.xvel, self.yvel)
+		
+
+		if self.dt_image > self.animation_speed:
+			self.index += 1
+			if self.index >= 4:
+				self.index = 0
+			self.dt_image = 0
+			self.sheet.set_clip(pygame.Rect(self.index * self.width, self.sprite_num * self.height, self.width, self.height))
+			self.image = self.sheet.subsurface(self.sheet.get_clip())
+		self.image.set_colorkey((0,255,0))
+		self.image = pygame.transform.scale(self.image, (150,150))
+
 
 
 
@@ -283,6 +320,7 @@ class ChickenModel:
 		self.height = SCREEN_H
 
 		self.chicken = Chicken()
+		self.alive = self.chicken.alive
 		self.chicken_sprite = pygame.sprite.Group(self.chicken)
 
 
@@ -296,8 +334,12 @@ class ChickenModel:
 		"""
 
 		self.sky.update()
-		self.chicken_sprite.update()
 		self.hawks.update(self.chicken, dt)
+		self.chicken_sprite.update(self.hawks.hawkfleet)
+
+
+		self.alive = self.chicken.alive
+
 	
 
 	def get_drawables(self):
@@ -322,7 +364,13 @@ class ChickenView:
 		self.screen = pygame.display.set_mode((self.width, self.height))
 		pygame.display.set_caption('CHICKENS CHICKENS CHICKENS')
 
-	def draw(self):
+
+		pygame.font.init()
+		self.font = pygame.font.Font(CURR_DIR + '/Chicken.ttf', 80)
+
+		self.game_over = self.font.render('GAME OVER', False, RED)
+
+	def draw(self, alive):
 		"""
 		Redraws game windows, fetching drawables from model
 		"""
@@ -332,6 +380,11 @@ class ChickenView:
 
 		for g in drawables:
 			g.draw(self.screen)	
+
+
+
+		if not alive:
+			self.screen.blit(self.game_over, (SCREEN_W/2 - 150,SCREEN_H/2 - 80))	
 
 
 		pygame.display.flip()	
@@ -362,18 +415,16 @@ class ChickenController:
 			elif event.type == pygame.KEYDOWN:	
 				k = event.key
 
-				if k == pygame.K_DOWN and self.model.chicken.rect.bottom <= SCREEN_H - 100:
+				if k == pygame.K_DOWN and self.model.chicken.rect.bottom <= SCREEN_H:
 					self.model.chicken.yvel = 10
 
 				if k == pygame.K_UP and self.model.chicken.rect.top >= 0:
 					self.model.chicken.yvel = -10
 
-				if k == pygame.K_RIGHT and self.model.chicken.rect.right <= SCREEN_W - 100:
-					self.model.chicken.image = self.model.chicken.chickenFlip
+				if k == pygame.K_RIGHT and self.model.chicken.rect.right <= SCREEN_W:
 					self.model.chicken.xvel = 10
 
 				if k == pygame.K_LEFT and self.model.chicken.rect.left >= 0:
-					self.model.chicken.image = self.model.chicken.chickenObj
 					self.model.chicken.xvel = -10
 
 				if k == pygame.K_ESCAPE:
@@ -423,16 +474,32 @@ class ChickenMain(object):
 
 
 		while not done:
+			if self.model.alive:
 
-			t = pygame.time.get_ticks()
-			dt = (t - lastGetTicks) / 1000.0
-			lastGetTicks = t
 
-			done = self.controller.process_events()
-			self.model.update(dt)
-			self.view.draw()
+				t = pygame.time.get_ticks()
+				dt = (t - lastGetTicks) / 1000.0
+				lastGetTicks = t
 
-			self.clock.tick(FRAMERATE)		
+				done = self.controller.process_events()
+				self.model.update(dt)
+				self.view.draw(self.model.alive)
+
+				self.clock.tick(FRAMERATE)		
+
+			else:
+				while self.model.chicken.rect.top < SCREEN_H:
+					t = pygame.time.get_ticks()
+					dt = (t - lastGetTicks) / 1000.0
+					lastGetTicks = t
+
+					done = self.controller.process_events()
+					self.model.update(dt)
+					self.view.draw(self.model.alive)
+
+					self.clock.tick(FRAMERATE)
+				done = True		
+
 
 		pygame.quit()
 		sys.exit()	
