@@ -203,6 +203,121 @@ class Chicken(pygame.sprite.Sprite):
 		self.hitbox.right = self.rect.right -12.5 #makes sure the right of the hitbox is aligned properly
 
 
+class EggShot(pygame.sprite.Sprite):
+	"""
+	The projectile Egg that the Chicken can shoot
+	"""
+
+	def __init__(self, side, top, xvel):
+		pygame.sprite.Sprite.__init__(self)
+
+
+		#making the image and animation
+
+		self.sheet = pygame.image.load('rolling_eggs.png')
+		self.sprite_num = 0  #row of the subimage
+		self.dt_image = 0.0
+		self.index = 0   #column of the subimage
+		self.animation_speed = .10  #animation speed of the egg rolling
+
+		self.width = 20  #width of the subimage
+		self.height = 20  #height of the subimage
+
+		self.sheet.set_clip(pygame.Rect(self.index * self.width, self.sprite_num * self.height, self.width, self.height))
+		self.image = self.sheet.subsurface(self.sheet.get_clip())
+
+		self.image = pygame.transform.scale(self.image, (50, 50))
+		self.index += 1
+
+		#determining where the image is in the screen
+
+		self.yvel = 20
+		self.xvel = xvel
+
+		self.rect = pygame.Rect(side , top, 50, 50)
+		self.hitbox = pygame.Rect(side + 5, top + 5, 40, 40)
+
+	def is_in_range(self):
+		"""
+		Checks if egg is still in the screen, assuming that it never hit a hawk
+		"""
+
+		return self.rect.top <= SCREEN_H
+
+
+	def move(self, xvel, yvel):
+		"""
+		Moves the egg, making it drop
+		"""
+
+		self.rect = self.rect.move(xvel, yvel)
+		self.hitbox = self.hitbox.move(xvel, yvel)	
+
+	def update(self, hawks, dt):
+	
+		"""
+		Updates the egg, making it fall, checking for range and collisions.
+		"""
+		self.dt_image +=dt
+
+		self.move(self.xvel, self.yvel)
+		self.collide(hawks)
+
+		if self.dt_image > self.animation_speed:
+			self.index += 1
+			if self.index >= 8:
+				self.index = 0
+			self.dt_image = 0
+			
+			self.sheet.set_clip(pygame.Rect(self.index * self.width, self.sprite_num * self.height, self.width, self.height))
+			self.image = self.sheet.subsurface(self.sheet.get_clip())
+
+		self.image = pygame.transform.scale(self.image, (50,50))	
+
+
+	def collide(self, hawks):
+		"""
+		Checks for collisions with hawks
+		"""
+
+		for hawk in hawks:
+			if self.hitbox.colliderect(hawk.hitbox):
+				self.kill()
+				hawk.alive = False
+
+
+class Eggs():
+	"""
+	The group that represents the current collection of eggs that are procced
+	"""
+
+	def __init__(self, model):
+
+		self.model = model
+		self.egggroup = pygame.sprite.Group()
+
+		self.num_eggs = 0
+
+	def drop_eggs(self, side, top, xvel):
+		
+		temp = EggShot(side, top, xvel)
+
+		temp.add(self.egggroup)
+
+	def update(self, hawks, dt):
+
+		for egg in self.egggroup:
+			if not egg.is_in_range():
+				egg.kill()
+				self.num_eggs -= 1
+
+		for egg in self.egggroup:
+			egg.update(hawks, dt)		
+				
+
+			
+
+
 
 
 class Hawk(pygame.sprite.Sprite):
@@ -213,6 +328,8 @@ class Hawk(pygame.sprite.Sprite):
 	def __init__(self, pos, xvel, top_hawk):
 		pygame.sprite.Sprite.__init__(self)
 
+
+		self.alive = True # The hawk's life, in reference to eggs
 
 		self.sheet = pygame.image.load('hawkspritesheet.png')
 		self.sprite_num = 2  #row of the subimage
@@ -274,7 +391,7 @@ class Hawk(pygame.sprite.Sprite):
 		self.dt_image += dt
 
 		self.counter += dt  
-		if self.counter > 60:  #wait 2 seconds before letting hawks fly in
+		if self.counter > 2:  #wait 2 seconds before letting hawks fly in
 			x_diff = chicken.rect.right - self.rect.right   
 			y_diff = chicken.rect.top - self.rect.top
 			vector_mag = math.sqrt(x_diff**2 + y_diff**2) * 5   #calculates how to chase the chicken
@@ -297,6 +414,8 @@ class Hawk(pygame.sprite.Sprite):
 				self.sheet.set_clip(pygame.Rect(self.index * self.width, self.sprite_num * self.height, self.width, self.height))
 				self.image = self.sheet.subsurface(self.sheet.get_clip())  
 			self.image = pygame.transform.scale(self.image, (150,150))
+
+
 
 		
 
@@ -330,7 +449,7 @@ class Flock():
 
 
 		for hawk in self.hawkfleet:
-			if not hawk.is_in_range():  #if a hawk goes out of range, kill it and replace it
+			if not hawk.is_in_range()  or not hawk.alive:  #if a hawk goes out of range, kill it and replace it
 				hawk.kill()
 				self.num_hawks -= 1
 
@@ -362,6 +481,9 @@ class ChickenModel:
 		self.chicken_sprite = pygame.sprite.Group(self.chicken)
 
 
+		self.Eggs = Eggs(self)
+
+
 		self.hawks = Flock(self)
 
 		self.sky = Sky(self)
@@ -373,7 +495,8 @@ class ChickenModel:
 
 		self.sky.update()
 		self.hawks.update(self.chicken, dt)
-		self.chicken_sprite.update(self.hawks.hawkfleet, dt, alive)
+		self.chicken_sprite.update(self.hawks.hawkfleet, dt, self.alive)
+		self.Eggs.update(self.hawks.hawkfleet, dt)
 
 
 		self.alive = self.chicken.alive
@@ -384,7 +507,7 @@ class ChickenModel:
 		"""
 		Gives a list of things to draw in view
 		"""
-		return [self.sky.clouds, self.hawks.hawkfleet, self.chicken_sprite]
+		return [self.sky.clouds, self.hawks.hawkfleet, self.chicken_sprite, self.Eggs.egggroup]
 
 class ChickenView:
 	"""
@@ -465,6 +588,13 @@ class ChickenController:
 
 					if k == pygame.K_LEFT and self.model.chicken.rect.left >= 0:
 						self.model.chicken.xvel = -10
+
+					if k ==pygame.K_SPACE:
+						if self.model.chicken.xvel > 0:
+							self.model.Eggs.drop_eggs(self.model.chicken.rect.left, self.model.chicken.rect.top, self.model.chicken.xvel)
+						else:
+							self.model.Eggs.drop_eggs(self.model.chicken.rect.right, self.model.chicken.rect.top, self.model.chicken.xvel)
+		
 
 					if k == pygame.K_ESCAPE:
 						self.done = True
