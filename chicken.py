@@ -225,13 +225,13 @@ class Hawk(pygame.sprite.Sprite):
 		self.index += 1
 		
 
-		if top_hawk:   #if top hawk, then determines where the hawk will appear from
+		if top_hawk:   #if top hawk, then determines where the hawk will appear from on the top and bottom
 			self.ypos = pos
 			if pos == -150 or pos == SCREEN_H:
 				self.xpos = random.randint(-150, SCREEN_W)
 			else:
 				self.xpos = random.choice([-150, SCREEN_W])	
-		else:		
+		else:		                        #if not, then determines where the hawk will appear from the sides
 			self.xpos = pos
 			if pos == -150 or pos == SCREEN_W:
 				self.ypos = random.randint(-150,SCREEN_H)
@@ -239,10 +239,9 @@ class Hawk(pygame.sprite.Sprite):
 				self.ypos = random.choice([-150,SCREEN_H])
 
 
-		if  self.xpos > SCREEN_W/2:
+		if  self.xpos > SCREEN_W/2:  #orients the hawk properly based on where it came from
 			self.xvel = -1 * xvel
 		else:
-			# self.image = pygame.transform.flip(self.image, True, False)
 			self.sprite_num = 1
 			self.xvel = xvel	
 
@@ -268,29 +267,29 @@ class Hawk(pygame.sprite.Sprite):
 
 		self.dt_image += dt
 
-		self.counter += dt
-		if self.counter > 2:
-			x_diff = chicken.rect.right - self.rect.right
+		self.counter += dt  
+		if self.counter > 2:  #wait 2 seconds before letting hawks fly in
+			x_diff = chicken.rect.right - self.rect.right   
 			y_diff = chicken.rect.top - self.rect.top
-			vector_mag = math.sqrt(x_diff**2 + y_diff**2) * 5
+			vector_mag = math.sqrt(x_diff**2 + y_diff**2) * 5   #calculates how to chase the chicken
 			self.xvel = self.xvel + x_diff / vector_mag 
 			if self.xvel < 0:
-				self.sprite_num = 2
+				self.sprite_num = 2  #changes orientation of hawk based on which direction it's flying
 			else:
-				self.sprite_num = 1 
+				self.sprite_num = 1   #changes orientation based on direction of flight
 			self.yvel = self.yvel + y_diff / vector_mag
 
 			self.rect = self.rect.move(self.xvel, self.yvel)
 			self.hitbox = self.hitbox.move(self.xvel, self.yvel)
 
 
-			if self.dt_image > self.animation_speed:
+			if self.dt_image > self.animation_speed:    #changes the image incrementally based on time for animation
 				self.index += 1
 				if self.index >= 4:
 					self.index = 0
 				self.dt_image = 0
 				self.sheet.set_clip(pygame.Rect(self.index * self.width, self.sprite_num * self.height, self.width, self.height))
-				self.image = self.sheet.subsurface(self.sheet.get_clip())
+				self.image = self.sheet.subsurface(self.sheet.get_clip())  
 			self.image = pygame.transform.scale(self.image, (150,150))
 
 		
@@ -311,7 +310,7 @@ class Flock():
 
 		self.num_hawks = 0
 
-		for i in range(1):
+		for i in range(1):  #makes a bunch of hawks
 			Hawk(random.randint(-150,SCREEN_H), random.randint(1, 7), True).add(self.hawkfleet)
 			Hawk(random.randint(-150,SCREEN_W), random.randint(1, 7), False).add(self.hawkfleet)
 			self.num_hawks += 2
@@ -325,11 +324,11 @@ class Flock():
 
 
 		for hawk in self.hawkfleet:
-			if not hawk.is_in_range():
+			if not hawk.is_in_range():  #if a hawk goes out of range, kill it and replace it
 				hawk.kill()
 				self.num_hawks -= 1
 
-				if random.choice([True, False]):
+				if random.choice([True, False]):   
 					Hawk(random.randint(-150,SCREEN_W), random.randint(1,7), True).add(self.hawkfleet)
 					self.num_hawks += 1
 				else:
@@ -509,8 +508,8 @@ class ChickenMain(object):
 		done = False
 
 
-		while not done:
-			if self.model.alive:
+		while not done:  #iterates while alive
+			if self.model.alive:  #while alive, will do stuff normally
 
 
 				t = pygame.time.get_ticks()
@@ -523,7 +522,7 @@ class ChickenMain(object):
 
 				self.clock.tick(FRAMERATE)		
 
-			else:
+			else:                  #while dead, will go for a falling scene until out of the screen, then ends
 				while self.model.chicken.rect.top < SCREEN_H:
 					t = pygame.time.get_ticks()
 					dt = (t - lastGetTicks) / 1000.0
