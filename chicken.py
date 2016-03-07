@@ -417,6 +417,7 @@ class ChickenController:
 
 			elif event.type == pygame.KEYUP:
 				k = event.key
+
 				if k == pygame.K_DOWN:
 					self.model.chicken.yvel = -5		
 				if k == pygame.K_UP:
