@@ -31,25 +31,25 @@ class Cloud(pygame.sprite.Sprite):
 	def __init__(self, xpos, ypos):
 		pygame.sprite.Sprite.__init__(self)
 
-		self.image = pygame.image.load('cloud2.png')
-		#self.cloudObj.set_colorkey((255,255,255))
+		self.image = pygame.image.load('cloud2.png')   #loading cloud picture
 		scale = random.random() + 1
-		self.image = pygame.transform.scale(self.image, (int(scale*200),int(scale*100)))
+		self.image = pygame.transform.scale(self.image, (int(scale*200),int(scale*100)))   #scales the clouds to a randomly set size
 		self.image.fill((255, 255, 255, 200), None, pygame.BLEND_RGBA_MULT)
 		if random.choice([True, False]):
-			self.image = pygame.transform.flip(self.image, True, False)
-		#self.cloudObj.convert()
+			self.image = pygame.transform.flip(self.image, True, False)   #randomly flips the clouds for variety
 
 		
 		
 		self.xpos = xpos
 		self.ypos = ypos
 		self.rect = pygame.Rect(self.xpos, self.ypos, self.image.get_width(), self.image.get_height())
-		self.yvel = scale*15
-		#self.window.blit(self.cloudObj, (self.xpos, self.ypos))
+		self.yvel = scale*15  #sets the speed of the cloud based on its size
 
 
 	def is_in_range(self):
+		"""
+		checks if the cloud hit the top
+		"""
 		
 		return self.rect.bottom > 0
 
@@ -57,12 +57,10 @@ class Cloud(pygame.sprite.Sprite):
 		"""
 		Moves the rectangle based on x-vel and y-vel
 		"""
-		#self.window.fill(pygame.Color(135, 206, 250), pygame.Rect(self.xpos, self.ypos, 100,100))
 		
 
 		#self.ypos -= self.yvel
 		self.rect = self.rect.move(0, -self.yvel)
-		#self.window.blit(self.cloudObj, (self.xpos, self.ypos))
 
 
 
@@ -78,7 +76,7 @@ class Sky():
 		self.num_clouds = 0
 
 		for i in range(10):
-			self.clouds.add(Cloud(random.randint(0,SCREEN_W), random.randint(0,SCREEN_H)))
+			self.clouds.add(Cloud(random.randint(0,SCREEN_W), random.randint(0,SCREEN_H)))  #creates a group of clouds in a Group
 			self.num_clouds += 1
 
 	def update(self):	
@@ -86,11 +84,11 @@ class Sky():
 		makes the clouds scroll up
 		"""
 		for cloud in self.clouds:
-			if not cloud.is_in_range():
+			if not cloud.is_in_range():   #if the cloud is out of range, kill it and replace it with new a one
 				cloud.kill()
 				Cloud(random.randint(0,SCREEN_W), SCREEN_H).add(self.clouds)
 
-		for cloud in self.clouds:
+		for cloud in self.clouds:  #update all clouds to move up
 			cloud.update()
 
 
@@ -109,24 +107,17 @@ class Chicken(pygame.sprite.Sprite):
 
 		self.alive = True # the chicken's life
 
-		# self.chickenObj = pygame.image.load('chicken.png')
-		# self.chickenObj.set_colorkey((255,255,255))
-		# self.chickenObj = pygame.transform.scale(self.chickenObj, (100, 100))
-		# #self.chickenObj.convert()
-		# self.chickenFlip = pygame.transform.flip(self.chickenObj, True, False)
-		# self.image = self.chickenObj
-
 		self.sheet = pygame.image.load('chickenspritesheet.png')
-		self.sprite_num = 3
-		self.dt_image = 0.0
-		self.index = 0
-		self.animation_speed = 0.10
+		self.sprite_num = 3   #row of the chicken's subimage
+		self.dt_image = 0.0   #the time for changing the picture of the image
+		self.index = 0   #column of the chicken's subimage
+		self.animation_speed = 0.10  #speed of the chicken's animation sequence
 
-		self.width = 88
-		self.height = 54
+		self.width = 88  #width of the subimage
+		self.height = 54  #height of the subimage
 
 		self.sheet.set_clip(pygame.Rect(self.index * self.width, self.sprite_num * self.height, self.width, self.height+23))
-		self.image = self.sheet.subsurface(self.sheet.get_clip())
+		self.image = self.sheet.subsurface(self.sheet.get_clip())      #setting and getting the subimage
 		self.image = pygame.transform.scale(self.image, (125,100))
 		self.index += 1
 
@@ -136,7 +127,7 @@ class Chicken(pygame.sprite.Sprite):
 		self.xvel = 0
 		self.yvel = 0
 		self.rect = pygame.Rect(self.xpos, self.ypos, 100, 100)
-		self.hitbox = pygame.Rect(self.xpos + 12.5, self.ypos + 12.5, 75, 75)
+		self.hitbox = pygame.Rect(self.xpos + 12.5, self.ypos + 12.5, 75, 75)  #hitbox of the chicken, defined as 3/4 of its size
 	
 
 
@@ -145,7 +136,7 @@ class Chicken(pygame.sprite.Sprite):
 		Moves the chicken around based on its rectangle
 		"""
 		if self.alive:
-			if not self.rect.right <= SCREEN_W: 
+			if not self.rect.right <= SCREEN_W:    #checks boundaries
 				self.rect.right = SCREEN_W -1
 			if not self.rect.left >= 0:
 				self.rect.left = 1	
@@ -164,14 +155,14 @@ class Chicken(pygame.sprite.Sprite):
 		"""
 
 
-		self.correct_boxes()
+		self.correct_boxes()  #makes sure that the hitbox stays within the chicken's model
 
 
-		self.move(self.xvel, self.yvel)
+		self.move(self.xvel, self.yvel)  #moves and checks for collision before making image
 		self.collide(hawks)
 
 		self.dt_image += dt
-		if self.dt_image > self.animation_speed:
+		if self.dt_image > self.animation_speed:   #incrementally changes the subimage to make animation
 			self.index += 1
 			if self.index >= 3:
 				self.index = 0
@@ -193,7 +184,7 @@ class Chicken(pygame.sprite.Sprite):
 		"""
 
 		for hawk in hawks:
-			if self.hitbox.colliderect(hawk.hitbox):
+			if self.hitbox.colliderect(hawk.hitbox):  #checks for collision between hitboxes
 				self.alive = False
 				self.yvel = 5
 				self.xvel = 0
@@ -202,8 +193,8 @@ class Chicken(pygame.sprite.Sprite):
 		"""
 		Corrects the hitboxes in case of mishaps
 		"""
-		self.hitbox.top = self.rect.top + 12.5
-		self.hitbox.right = self.rect.right -12.5			
+		self.hitbox.top = self.rect.top + 12.5   #makes sure the top of the hitbox is aligned properly
+		self.hitbox.right = self.rect.right -12.5 #makes sure the right of the hitbox is aligned properly
 
 
 
@@ -216,28 +207,25 @@ class Hawk(pygame.sprite.Sprite):
 	def __init__(self, pos, xvel, top_hawk):
 		pygame.sprite.Sprite.__init__(self)
 
-		# self.image = pygame.image.load('hawk.png')
-		# self.image.set_colorkey((255,255,255))
-		# self.image = pygame.transform.scale(self.image, (150,150))
-		#self.image.convert()
-		self.sheet = pygame.image.load('hawkspritesheet.png')
-		self.sprite_num = 2
-		self.dt_image = 0.0
-		self.counter = 0.0
-		self.index = 0
-		self.animation_speed = 0.10
 
-		self.width = 85
-		self.height = 69.95
+		self.sheet = pygame.image.load('hawkspritesheet.png')
+		self.sprite_num = 2  #row of the subimage
+		self.dt_image = 0.0
+		self.counter = 0.0  #counter for delay of start
+		self.index = 0  #column of the subimage
+		self.animation_speed = 0.10  #animation speed of the hawk
+
+		self.width = 85  #width ofthe subimage
+		self.height = 69.95   #height of the subimage
 
 		self.sheet.set_clip(pygame.Rect(self.index * self.width, self.sprite_num * self.height, self.width, self.height))
-		self.image = self.sheet.subsurface(self.sheet.get_clip())
+		self.image = self.sheet.subsurface(self.sheet.get_clip())  #set and get subimage
 
 		self.image = pygame.transform.scale(self.image, (150,150))
 		self.index += 1
 		
 
-		if top_hawk:
+		if top_hawk:   #if top hawk, then determines where the hawk will appear from
 			self.ypos = pos
 			if pos == -150 or pos == SCREEN_H:
 				self.xpos = random.randint(-150, SCREEN_W)
