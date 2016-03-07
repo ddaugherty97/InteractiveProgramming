@@ -447,45 +447,47 @@ class ChickenController:
 		self.model = model
 		self.done = False
 
-	def process_events(self):		
+	def process_events(self, alive):		
 		"""
 		Manages keypresses
 		"""
 		pygame.event.pump
 
-		for event in pygame.event.get():
-			if event.type == QUIT:
-				self.done = True
-			
-			elif event.type == pygame.KEYDOWN:	
-				k = event.key
+		if alive:
 
-				if k == pygame.K_DOWN and self.model.chicken.rect.bottom <= SCREEN_H:
-					self.model.chicken.yvel = 10
-
-				if k == pygame.K_UP and self.model.chicken.rect.top >= 0:
-					self.model.chicken.yvel = -10
-
-				if k == pygame.K_RIGHT and self.model.chicken.rect.right <= SCREEN_W:
-					self.model.chicken.xvel = 10
-
-				if k == pygame.K_LEFT and self.model.chicken.rect.left >= 0:
-					self.model.chicken.xvel = -10
-
-				if k == pygame.K_ESCAPE:
+			for event in pygame.event.get():
+				if event.type == QUIT:
 					self.done = True
+				
+				elif event.type == pygame.KEYDOWN:	
+					k = event.key
 
-			elif event.type == pygame.KEYUP:
-				k = event.key
+					if k == pygame.K_DOWN and self.model.chicken.rect.bottom <= SCREEN_H:
+						self.model.chicken.yvel = 10
 
-				if k == pygame.K_DOWN:
-					self.model.chicken.yvel = -5		
-				if k == pygame.K_UP:
-					self.model.chicken.yvel = -5		
-				if k == pygame.K_LEFT:
-					self.model.chicken.xvel = -.01		
-				if k == pygame.K_RIGHT:
-					self.model.chicken.xvel = .01			
+					if k == pygame.K_UP and self.model.chicken.rect.top >= 0:
+						self.model.chicken.yvel = -10
+
+					if k == pygame.K_RIGHT and self.model.chicken.rect.right <= SCREEN_W:
+						self.model.chicken.xvel = 10
+
+					if k == pygame.K_LEFT and self.model.chicken.rect.left >= 0:
+						self.model.chicken.xvel = -10
+
+					if k == pygame.K_ESCAPE:
+						self.done = True
+
+				elif event.type == pygame.KEYUP:
+					k = event.key
+
+					if k == pygame.K_DOWN:
+						self.model.chicken.yvel = -5		
+					if k == pygame.K_UP:
+						self.model.chicken.yvel = -5	
+					if k == pygame.K_LEFT:
+						self.model.chicken.xvel = -.01		
+					if k == pygame.K_RIGHT:
+						self.model.chicken.xvel = .01			
 
 		return self.done								
 
@@ -527,7 +529,7 @@ class ChickenMain(object):
 				dt = (t - lastGetTicks) / 1000.0
 				lastGetTicks = t
 
-				done = self.controller.process_events()
+				done = self.controller.process_events(self.model.alive)
 				self.model.update(dt)
 				self.view.draw(self.model.alive)
 
@@ -539,7 +541,7 @@ class ChickenMain(object):
 					dt = (t - lastGetTicks) / 1000.0
 					lastGetTicks = t
 
-					done = self.controller.process_events()
+					done = self.controller.process_events(self.model.alive)
 					self.model.update(dt)
 					self.view.draw(self.model.alive)
 
