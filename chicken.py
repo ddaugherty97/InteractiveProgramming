@@ -30,23 +30,27 @@ class Cloud(pygame.sprite.Sprite):
 	def __init__(self, xpos, ypos):
 		pygame.sprite.Sprite.__init__(self)
 
-		self.image = pygame.image.load('cloud.png')
+		self.image = pygame.image.load('cloud2.png')
 		#self.cloudObj.set_colorkey((255,255,255))
-		self.image = pygame.transform.scale(self.image, (100,100))
+		scale = random.random() + 1
+		self.image = pygame.transform.scale(self.image, (int(scale*200),int(scale*100)))
+		self.image.fill((255, 255, 255, 200), None, pygame.BLEND_RGBA_MULT)
+		if random.choice([True, False]):
+			self.image = pygame.transform.flip(self.image, True, False)
 		#self.cloudObj.convert()
 
 		
 		
 		self.xpos = xpos
 		self.ypos = ypos
-		self.rect = pygame.Rect(self.xpos, self.ypos, 100, 100)
-		self.yvel = 20
+		self.rect = pygame.Rect(self.xpos, self.ypos, self.image.get_width(), self.image.get_height())
+		self.yvel = scale*15
 		#self.window.blit(self.cloudObj, (self.xpos, self.ypos))
 
 
 	def is_in_range(self):
 		
-		return self.rect.top > -100	
+		return self.rect.bottom > 0
 
 	def update(self):
 		"""
@@ -100,12 +104,28 @@ class Chicken(pygame.sprite.Sprite):
 	def __init__ (self):
 		pygame.sprite.Sprite.__init__(self)
 
-		self.chickenObj = pygame.image.load('chicken.png')
-		self.chickenObj.set_colorkey((255,255,255))
-		self.chickenObj = pygame.transform.scale(self.chickenObj, (100, 100))
-		#self.chickenObj.convert()
-		self.chickenFlip = pygame.transform.flip(self.chickenObj, True, False)
-		self.image = self.chickenObj
+		# self.chickenObj = pygame.image.load('chicken.png')
+		# self.chickenObj.set_colorkey((255,255,255))
+		# self.chickenObj = pygame.transform.scale(self.chickenObj, (100, 100))
+		# #self.chickenObj.convert()
+		# self.chickenFlip = pygame.transform.flip(self.chickenObj, True, False)
+		# self.image = self.chickenObj
+
+		self.sheet = pygame.image.load('chickenspritesheet.png')
+		self.sprite_num = 3
+		self.dt_image = 0.0
+		self.index = 0
+		self.animation_speed = 0.10
+
+		self.width = 88
+		self.height = 54
+
+		self.sheet.set_clip(pygame.Rect(self.index * self.width, self.sprite_num * self.height, self.width, self.height+23))
+		self.image = self.sheet.subsurface(self.sheet.get_clip())
+		self.image = pygame.transform.scale(self.image, (125,100))
+		self.index += 1
+
+
 		
 		self.xpos = SCREEN_W/2 -50
 		self.ypos = 10
@@ -119,10 +139,27 @@ class Chicken(pygame.sprite.Sprite):
 		self.rect = self.rect.move(xvel, yvel)
 		
 
-	def update(self):
+	def update(self, dt):
 		"""
 		Moves the chicken
 		"""
+
+		self.dt_image += dt
+		if self.dt_image > self.animation_speed:
+			self.index += 1
+			if self.index >= 3:
+				self.index = 0
+			self.dt_image = 0
+
+			if self.xvel > 0:
+				self.sheet.set_clip(pygame.Rect(self.index * self.width, self.sprite_num * self.height, self.width, self.height+23))
+				self.image = self.sheet.subsurface(self.sheet.get_clip())
+			else:
+				self.sheet.set_clip(pygame.Rect(self.index * self.width, self.sprite_num * self.height, self.width, self.height+23))
+				self.image = self.sheet.subsurface(self.sheet.get_clip())
+				self.image = pygame.transform.flip(self.image, True, False)
+		self.image = pygame.transform.scale(self.image, (125,100))
+
 		self.move(self.xvel, self.yvel)
 
 		#self.window.fill(pygame.Color(135, 206, 250), pygame.Rect(self.xpos, self.ypos, 100,100))
@@ -147,6 +184,7 @@ class Hawk(pygame.sprite.Sprite):
 		self.sheet = pygame.image.load('hawkspritesheet.png')
 		self.sprite_num = 2
 		self.dt_image = 0.0
+		self.counter = 0.0
 		self.index = 0
 		self.animation_speed = 0.10
 
@@ -155,8 +193,7 @@ class Hawk(pygame.sprite.Sprite):
 
 		self.sheet.set_clip(pygame.Rect(self.index * self.width, self.sprite_num * self.height, self.width, self.height))
 		self.image = self.sheet.subsurface(self.sheet.get_clip())
-		self.image.set_colorkey((0,255,0))
-		self.image = pygame.transform.scale(self.image, (300,300))
+		self.image = pygame.transform.scale(self.image, (150,150))
 		self.index += 1
 		
 
@@ -203,28 +240,29 @@ class Hawk(pygame.sprite.Sprite):
 		"""
 
 		self.dt_image += dt
-		if self.dt_image > self.animation_speed:
-			self.index += 1
-			if self.index >= 4:
-				self.index = 0
-			self.dt_image = 0
-			self.sheet.set_clip(pygame.Rect(self.index * self.width, self.sprite_num * self.height, self.width, self.height))
-			self.image = self.sheet.subsurface(self.sheet.get_clip())
-		self.image.set_colorkey((0,255,0))
-		self.image = pygame.transform.scale(self.image, (150,150))
+		self.counter += dt
+		if self.counter > 2:
+			if self.dt_image > self.animation_speed:
+				self.index += 1
+				if self.index >= 4:
+					self.index = 0
+				self.dt_image = 0
+				self.sheet.set_clip(pygame.Rect(self.index * self.width, self.sprite_num * self.height, self.width, self.height))
+				self.image = self.sheet.subsurface(self.sheet.get_clip())
+			self.image = pygame.transform.scale(self.image, (150,150))
 
-		x_diff = chicken.rect.right - self.rect.right
-		y_diff = chicken.rect.top - self.rect.top
-		vector_mag = math.sqrt(x_diff**2 + y_diff**2) * 5
-		self.xvel = self.xvel + x_diff / vector_mag 
-		if self.xvel < 0:
-			self.sprite_num = 2
-		else:
-			self.sprite_num = 1 
-		self.yvel = self.yvel + y_diff / vector_mag
+			x_diff = chicken.rect.right - self.rect.right
+			y_diff = chicken.rect.top - self.rect.top
+			vector_mag = math.sqrt(x_diff**2 + y_diff**2) * 5
+			self.xvel = self.xvel + x_diff / vector_mag 
+			if self.xvel < 0:
+				self.sprite_num = 2
+			else:
+				self.sprite_num = 1 
+			self.yvel = self.yvel + y_diff / vector_mag
 
-		self.rect = self.rect.move(self.xvel, self.yvel)
-		#self.window.blit(self.hawk, (self.xpos, self.ypos))
+			self.rect = self.rect.move(self.xvel, self.yvel)
+			#self.window.blit(self.hawk, (self.xpos, self.ypos))
 
 
 
@@ -296,7 +334,7 @@ class ChickenModel:
 		"""
 
 		self.sky.update()
-		self.chicken_sprite.update()
+		self.chicken_sprite.update(dt)
 		self.hawks.update(self.chicken, dt)
 	
 
@@ -369,11 +407,9 @@ class ChickenController:
 					self.model.chicken.yvel = -10
 
 				if k == pygame.K_RIGHT and self.model.chicken.rect.right <= SCREEN_W - 100:
-					self.model.chicken.image = self.model.chicken.chickenFlip
 					self.model.chicken.xvel = 10
 
 				if k == pygame.K_LEFT and self.model.chicken.rect.left >= 0:
-					self.model.chicken.image = self.model.chicken.chickenObj
 					self.model.chicken.xvel = -10
 
 				if k == pygame.K_ESCAPE:
@@ -382,13 +418,13 @@ class ChickenController:
 			elif event.type == pygame.KEYUP:
 				k = event.key
 				if k == pygame.K_DOWN:
-					self.model.chicken.yvel = 0		
+					self.model.chicken.yvel = -5		
 				if k == pygame.K_UP:
-					self.model.chicken.yvel = 0		
+					self.model.chicken.yvel = -5		
 				if k == pygame.K_LEFT:
-					self.model.chicken.xvel = 0		
+					self.model.chicken.xvel = -.01		
 				if k == pygame.K_RIGHT:
-					self.model.chicken.xvel = 0				
+					self.model.chicken.xvel = .01			
 
 		return self.done								
 
