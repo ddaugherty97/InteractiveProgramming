@@ -481,7 +481,7 @@ class Flock():
 
 		self.num_hawks = 0
 
-		for i in range(3):  #makes a bunch of hawks
+		for i in range(1):  #makes a bunch of hawks
 			Hawk(random.randint(-150,SCREEN_H), random.randint(1, 7), True).add(self.hawkfleet)
 			Hawk(random.randint(-150,SCREEN_W), random.randint(1, 7), False).add(self.hawkfleet)
 			self.num_hawks += 2
@@ -563,6 +563,31 @@ class Plane(pygame.sprite.Sprite):
 				self.image = self.sheet.subsurface(self.sheet.get_clip())
 			self.image = pygame.transform.scale(self.image, (200,100))
 
+class Horizon(pygame.sprite.Sprite):
+
+	def __init__(self):
+		pygame.sprite.Sprite.__init__(self)
+		self.image = pygame.image.load('horizon.png')
+		self.xpos = 0
+		self.ypos = SCREEN_H
+		self.yvel = -1
+		self.animation_speed = 0.40
+		self.dt_image = 0
+
+		self.rect = pygame.Rect(self.xpos, self.ypos, SCREEN_W, SCREEN_H/2)
+
+	def move(self):
+
+		self.rect = self.rect.move(0, self.yvel)
+
+	def update(self, dt):
+
+		if not self.rect.bottom < SCREEN_H:
+			self.dt_image += dt
+			if self.dt_image > self.animation_speed:
+				self.move()
+				self.dt_image = 0
+
 		
 class ChickenModel:
 	"""
@@ -575,6 +600,8 @@ class ChickenModel:
 
 		self.plane = Plane()
 		self.plane_group = pygame.sprite.Group(self.plane)
+		self.horizon = Horizon()
+		self.horizon_group = pygame.sprite.Group(self.horizon)
 		self.chicken = Chicken()
 		self.alive = self.chicken.alive
 		self.chicken_sprite = pygame.sprite.Group(self.chicken)
@@ -605,6 +632,7 @@ class ChickenModel:
 			self.hawks.update(self.chicken, dt, start)
 			self.chicken_sprite.update(self.hawks.hawkfleet, dt, self.alive)
 			self.Eggs.update(self.hawks.hawkfleet, dt)
+			self.horizon_group.update(dt)
 
 		if self.chicken.alive:
 			self.dt_score += dt
@@ -628,9 +656,9 @@ class ChickenModel:
 		Gives a list of things to draw in view
 		"""
 		if start:
-			return [self.start_sky.clouds, self.hawks.hawkfleet, self.chicken_sprite, self.Eggs.egggroup, self.plane_group]
+			return [self.horizon_group, self.start_sky.clouds, self.hawks.hawkfleet, self.chicken_sprite, self.Eggs.egggroup, self.plane_group]
 		else:
-			return [self.plane_group, self.sky.clouds, self.hawks.hawkfleet, self.chicken_sprite, self.Eggs.egggroup]
+			return [self.horizon_group, self.plane_group, self.sky.clouds, self.hawks.hawkfleet, self.chicken_sprite, self.Eggs.egggroup]
 
 class ChickenView:
 	"""
@@ -684,11 +712,10 @@ class ChickenView:
 			self.screen.blit(self.start_screen4, (SCREEN_W/2 - 280, 675))
 			self.screen.blit(self.start_screen5, (SCREEN_W/2 - 390, 775))
 
-
 		self.draw_score()	
-		if not alive:
-			self.screen.blit(self.game_over, (SCREEN_W/2 - 150,SCREEN_H/2 - 80))	
 
+		if not alive:
+			self.screen.blit(self.game_over, (SCREEN_W/2 - 200,SCREEN_H/2 - 80))
 
 		pygame.display.flip()	
 
