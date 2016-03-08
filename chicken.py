@@ -9,6 +9,7 @@ Software Design Spring 2016
 import pygame, sys, os
 from pygame.locals import *
 import random, math
+import pickle
 
 FRAMERATE = 60
 
@@ -208,11 +209,12 @@ class EggShot(pygame.sprite.Sprite):
 	The projectile Egg that the Chicken can shoot
 	"""
 
-	def __init__(self, side, top, xvel):
+	def __init__(self, side, top, xvel, model):
 		pygame.sprite.Sprite.__init__(self)
 
 
 		#making the image and animation
+		self.model = model
 
 		self.sheet = pygame.image.load('rolling_eggs.png')
 		self.sprite_num = 0  #row of the subimage
@@ -232,10 +234,14 @@ class EggShot(pygame.sprite.Sprite):
 		#determining where the image is in the screen
 
 		self.yvel = 20
-		self.xvel = xvel
+		self.xvel = xvel  #x velocity is the same as the chicken's upon proc
 
 		self.rect = pygame.Rect(side , top, 50, 50)
-		self.hitbox = pygame.Rect(side + 5, top + 5, 40, 40)
+
+		if self.xvel > 0:
+			self.hitbox = pygame.Rect(side + 5, top + 5, 40, 40)
+		else:
+			self.hitbox = pygame.Rect(side - 5, top + 5, 40, 40)	
 
 	def is_in_range(self):
 		"""
@@ -263,7 +269,7 @@ class EggShot(pygame.sprite.Sprite):
 		self.move(self.xvel, self.yvel)
 		self.collide(hawks)
 
-		if self.dt_image > self.animation_speed:
+		if self.dt_image > self.animation_speed:   #animation to make the egg roll while dropping
 			self.index += 1
 			if self.index >= 8:
 				self.index = 0
@@ -282,6 +288,7 @@ class EggShot(pygame.sprite.Sprite):
 
 		for hawk in hawks:
 			if self.hitbox.colliderect(hawk.hitbox):
+				self.model.score += 1000
 				self.kill()
 				hawk.alive = False
 
@@ -299,12 +306,17 @@ class Eggs():
 		self.num_eggs = 0
 
 	def drop_eggs(self, side, top, xvel):
-		
-		temp = EggShot(side, top, xvel)
+		"""
+		Creates a new egg shot given a key press on space, adds it to the group
+		"""
+		temp = EggShot(side, top, xvel, self.model)
 
 		temp.add(self.egggroup)
 
 	def update(self, hawks, dt):
+		"""
+		updates the eggs, checking for out of range and moving them
+		"""
 
 		for egg in self.egggroup:
 			if not egg.is_in_range():
@@ -390,30 +402,48 @@ class Hawk(pygame.sprite.Sprite):
 
 		self.dt_image += dt
 
-		self.counter += dt  
-		if self.counter > 2:  #wait 2 seconds before letting hawks fly in
-			x_diff = chicken.rect.right - self.rect.right   
-			y_diff = chicken.rect.top - self.rect.top
-			vector_mag = math.sqrt(x_diff**2 + y_diff**2) * 5   #calculates how to chase the chicken
-			self.xvel = self.xvel + x_diff / vector_mag 
-			if self.xvel < 0:
-				self.sprite_num = 2  #changes orientation of hawk based on which direction it's flying
-			else:
-				self.sprite_num = 1   #changes orientation based on direction of flight
-			self.yvel = self.yvel + y_diff / vector_mag
+		if self.alive:	
 
+			self.counter += dt  
+			if self.counter > 2:  #wait 2 seconds before letting hawks fly in
+				x_diff = chicken.rect.right - self.rect.right   
+				y_diff = chicken.rect.top - self.rect.top
+				vector_mag = math.sqrt(x_diff**2 + y_diff**2) * 5   #calculates how to chase the chicken
+				self.xvel = self.xvel + x_diff / vector_mag 
+				if self.xvel < 0:
+					self.sprite_num = 2  #changes orientation of hawk based on which direction it's flying
+				else:
+					self.sprite_num = 1   #changes orientation based on direction of flight
+				self.yvel = self.yvel + y_diff / vector_mag
+
+				self.rect = self.rect.move(self.xvel, self.yvel)
+				self.hitbox = self.hitbox.move(self.xvel, self.yvel)
+
+
+
+		
+				if self.dt_image > self.animation_speed:    #changes the image incrementally based on time for animation
+					self.index += 1
+					if self.index >= 4:
+						self.index = 0
+					self.dt_image = 0
+					self.sheet.set_clip(pygame.Rect(self.index * self.width, self.sprite_num * self.height, self.width, self.height))
+					self.image = self.sheet.subsurface(self.sheet.get_clip())  
+				
+		else:
+			self.sheet.set_clip(pygame.Rect(0 * self.width, 5 * self.height, self.width -17, self.height)) #subimage for dead hawk
+			self.image = self.sheet.subsurface(self.sheet.get_clip())
+
+			if self.sprite_num == 2 :   #if the hawk was facing the other direction when dying, it will flip the death image
+				self.image = pygame.transform.flip(self.image, True, False)
+			self.xvel = 0
+			self.yvel = 10
 			self.rect = self.rect.move(self.xvel, self.yvel)
 			self.hitbox = self.hitbox.move(self.xvel, self.yvel)
 
+			
 
-			if self.dt_image > self.animation_speed:    #changes the image incrementally based on time for animation
-				self.index += 1
-				if self.index >= 4:
-					self.index = 0
-				self.dt_image = 0
-				self.sheet.set_clip(pygame.Rect(self.index * self.width, self.sprite_num * self.height, self.width, self.height))
-				self.image = self.sheet.subsurface(self.sheet.get_clip())  
-			self.image = pygame.transform.scale(self.image, (150,150))
+		self.image = pygame.transform.scale(self.image, (150,150))			
 
 
 
@@ -449,7 +479,8 @@ class Flock():
 
 
 		for hawk in self.hawkfleet:
-			if not hawk.is_in_range()  or not hawk.alive:  #if a hawk goes out of range, kill it and replace it
+
+			if not hawk.is_in_range():  #if a hawk goes out of range, kill it and replace it
 				hawk.kill()
 				self.num_hawks -= 1
 
@@ -480,6 +511,10 @@ class ChickenModel:
 		self.alive = self.chicken.alive
 		self.chicken_sprite = pygame.sprite.Group(self.chicken)
 
+		self.score = 0
+		self.dt_score = 0
+		self.score_speed = .1  #updates the score every .1 seconds
+
 
 		self.Eggs = Eggs(self)
 
@@ -498,9 +533,21 @@ class ChickenModel:
 		self.chicken_sprite.update(self.hawks.hawkfleet, dt, self.alive)
 		self.Eggs.update(self.hawks.hawkfleet, dt)
 
+		if self.chicken.alive:
+			self.dt_score += dt
 
 		self.alive = self.chicken.alive
+		
+		if self.dt_score >= self.score_speed:
+			self.update_score()
+			self.dt_score = 0	
 
+	def update_score(self):
+		"""
+		Increements the score by 10 
+		"""
+
+		self.score += 10
 	
 
 	def get_drawables(self):
@@ -523,10 +570,17 @@ class ChickenView:
 
 
 		pygame.font.init()
-		self.font = pygame.font.Font(CURR_DIR + '/Chicken.ttf', 80)
+		self.font2 = pygame.font.Font(CURR_DIR + '/Chicken.ttf', 80)
+		self.font = pygame.font.Font(CURR_DIR + '/Chicken2.ttf', 80)
 
-		self.game_over = self.font.render('GAME OVER', False, RED)
+		self.game_over = self.font2.render('GAME OVER', False, RED)
 
+		if os.path.exists(CURR_DIR + '/hiscore.txt'):
+			self.hiscore = str(pickle.load(open(CURR_DIR + '/hiscore.txt', 'rb')))
+		else: 
+			self.hiscore = '0'
+		self.hiscore_surf = self.font.render("HIGH: {}".format(self.hiscore), False, BLACK)
+     
 	def draw(self, alive):
 		"""
 		Redraws game windows, fetching drawables from model
@@ -539,7 +593,7 @@ class ChickenView:
 			g.draw(self.screen)	
 
 
-
+		self.draw_score()	
 		if not alive:
 			self.screen.blit(self.game_over, (SCREEN_W/2 - 150,SCREEN_H/2 - 80))	
 
@@ -548,6 +602,15 @@ class ChickenView:
 
 	def draw_start(self):
 		pass
+
+
+	def draw_score(self):
+		"""
+		Draws the score in the upper left hand corner, both current and high
+		"""
+		self.score_surf = self.font.render("CURRENT: {}".format(self.model.score), False, BLACK)
+		self.screen.blit(self.score_surf, (20,100))
+		self.screen.blit(self.hiscore_surf, (20,10))	
 
 
 
@@ -575,18 +638,18 @@ class ChickenController:
 				elif event.type == pygame.KEYDOWN:	
 					k = event.key
 
-					if k == pygame.K_DOWN and self.model.chicken.rect.bottom <= SCREEN_H:
+					if k == pygame.K_DOWN:
 						self.model.chicken.yvel = 10
 						self.model.chicken.animation_speed = 0.20
 
-					if k == pygame.K_UP and self.model.chicken.rect.top >= 0:
+					if k == pygame.K_UP:
 						self.model.chicken.yvel = -10
 						self.model.chicken.animation_speed = 0.06
 
-					if k == pygame.K_RIGHT and self.model.chicken.rect.right <= SCREEN_W:
+					if k == pygame.K_RIGHT:
 						self.model.chicken.xvel = 10
 
-					if k == pygame.K_LEFT and self.model.chicken.rect.left >= 0:
+					if k == pygame.K_LEFT:
 						self.model.chicken.xvel = -10
 
 					if k ==pygame.K_SPACE:
@@ -602,15 +665,15 @@ class ChickenController:
 				elif event.type == pygame.KEYUP:
 					k = event.key
 
-					if k == pygame.K_DOWN:
+					if k == pygame.K_DOWN and self.model.chicken.yvel == 10:
 						self.model.chicken.yvel = -3
 						self.model.chicken.animation_speed = 0.10		
-					if k == pygame.K_UP:
+					if k == pygame.K_UP and self.model.chicken.yvel == -10:
 						self.model.chicken.yvel = -3
 						self.model.chicken.animation_speed = 0.10	
-					if k == pygame.K_LEFT:
-						self.model.chicken.xvel = -.01	
-					if k == pygame.K_RIGHT:
+					if k == pygame.K_LEFT and self.model.chicken.xvel == -10:
+						self.model.chicken.xvel = -.01
+					if k == pygame.K_RIGHT and self.model.chicken.xvel == 10:
 						self.model.chicken.xvel = .01
 
 		return self.done								
@@ -674,6 +737,15 @@ class ChickenMain(object):
 
 					self.clock.tick(FRAMERATE)
 				done = True		
+
+				if os.path.exists(CURR_DIR + '/hiscore.txt'):
+					count = pickle.load(open(CURR_DIR + '/hiscore.txt', 'rb'))
+				else:
+					count = 0
+                if self.model.score > count:
+                    count = self.model.score
+                pickle.dump(count,open(CURR_DIR + '/hiscore.txt', 'wb'))    
+
 
 
 		pygame.quit()
