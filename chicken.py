@@ -643,13 +643,19 @@ class ChickenView:
 		self.height = SCREEN_H
 		self.model = model
 		self.screen = pygame.display.set_mode((self.width, self.height))
-		pygame.display.set_caption('CHICKENS CHICKENS CHICKENS')
+		pygame.display.set_caption('CAP\'N CHICKEN')
 
 		pygame.font.init()
-		self.font2 = pygame.font.Font(CURR_DIR + '/Chicken.ttf', 80)
+		self.font2 = pygame.font.Font(CURR_DIR + '/Chicken.ttf', 100)
 		self.font = pygame.font.Font(CURR_DIR + '/Chicken2.ttf', 80)
+		self.font3 = pygame.font.Font(CURR_DIR + '/Chicken3.ttf', 80)
 
-		self.start_screen = self.font2.render('THUNDER CHICKEN', False, RED)
+		self.start_screen = self.font2.render('CAP\'N CHICKEN', False, RED)
+		self.start_screen1 = self.font.render('USE THE ARROW KEYS TO MOVE', False, RED)
+		self.start_screen2= self.font.render('USE SPACE TO FIRE EGGS', False, RED)
+		self.start_screen3 = self.font.render('KILL AND DODGE VILLANOUS HAWKS', False, RED)
+		self.start_screen4 = self.font.render('LAST AS LONG AS YOU CAN!!!', False, RED)
+		self.start_screen5 = self.font3.render('PRESS ANY KEY TO START', False, RED)
 
 		self.game_over = self.font2.render('GAME OVER', False, RED)
 
@@ -671,7 +677,13 @@ class ChickenView:
 			g.draw(self.screen)	
 
 		if start:
-			self.screen.blit(self.start_screen, (SCREEN_W/2 - 200,SCREEN_H/2 - 80))
+			self.screen.blit(self.start_screen, (SCREEN_W/2 - 270, 230))
+			self.screen.blit(self.start_screen1, (SCREEN_W/2 - 300, 375))
+			self.screen.blit(self.start_screen2, (SCREEN_W/2 - 270, 475))
+			self.screen.blit(self.start_screen3, (SCREEN_W/2 - 375, 575))
+			self.screen.blit(self.start_screen4, (SCREEN_W/2 - 280, 675))
+			self.screen.blit(self.start_screen5, (SCREEN_W/2 - 390, 775))
+
 
 		self.draw_score()	
 		if not alive:
