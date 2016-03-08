@@ -210,7 +210,7 @@ class Chicken(pygame.sprite.Sprite):
 		for hawk in hawks:
 			if self.hitbox.colliderect(hawk.hitbox):  #checks for collision between hitboxes
 				self.alive = False
-				self.yvel = 5
+				self.yvel = 10   
 				self.xvel = 0
 
 	def correct_boxes(self):
@@ -457,7 +457,7 @@ class Hawk(pygame.sprite.Sprite):
 			self.yvel = 10
 
 			self.rect = self.rect.move(self.xvel, self.yvel)
-			self.hitbox = self.hitbox.move(self.xvel, self.yvel)
+			self.hitbox = self.hitbox.move(5000, 5000)
 
 	
 		self.image = pygame.transform.scale(self.image, (150,150))
@@ -481,7 +481,7 @@ class Flock():
 
 		self.num_hawks = 0
 
-		for i in range(1):  #makes a bunch of hawks
+		for i in range(3):  #makes a bunch of hawks
 			Hawk(random.randint(-150,SCREEN_H), random.randint(1, 7), True).add(self.hawkfleet)
 			Hawk(random.randint(-150,SCREEN_W), random.randint(1, 7), False).add(self.hawkfleet)
 			self.num_hawks += 2
