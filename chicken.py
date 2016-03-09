@@ -686,6 +686,8 @@ class ChickenView:
 		self.start_screen5 = self.font3.render('PRESS ANY KEY TO START', False, RED)
 
 		self.game_over = self.font2.render('GAME OVER', False, RED)
+		self.restart = self.font.render('Press r to restart',False, RED)
+		self.quit = self.font.render('Press Esc to quit', False, RED)
 
 		if os.path.exists(CURR_DIR + '/hiscore.txt'):
 			self.hiscore = str(pickle.load(open(CURR_DIR + '/hiscore.txt', 'rb')))
@@ -716,6 +718,8 @@ class ChickenView:
 
 		if not alive:
 			self.screen.blit(self.game_over, (SCREEN_W/2 - 200,SCREEN_H/2 - 80))
+			self.screen.blit(self.restart, (SCREEN_W/2 - 140,SCREEN_H/2 + 100))
+			self.screen.blit(self.quit, (SCREEN_W/2 - 140,SCREEN_H/2 + 200))
 
 		pygame.display.flip()	
 
@@ -736,6 +740,8 @@ class ChickenController:
 	def __init__(self, model):
 		self.model = model
 		self.done = False
+		self.restart = False
+		self.quit = False
 
 	def process_events(self, alive):		
 		"""
@@ -771,10 +777,7 @@ class ChickenController:
 							self.model.Eggs.drop_eggs(self.model.chicken.rect.left, self.model.chicken.rect.top, self.model.chicken.xvel)
 						else:
 							self.model.Eggs.drop_eggs(self.model.chicken.rect.right, self.model.chicken.rect.top, self.model.chicken.xvel)
-		
 
-					if k == pygame.K_ESCAPE:
-						self.done = True
 
 				elif event.type == pygame.KEYUP:
 					k = event.key
@@ -790,7 +793,19 @@ class ChickenController:
 					if k == pygame.K_RIGHT and self.model.chicken.xvel == 10:
 						self.model.chicken.xvel = .01
 
-		return self.done								
+		else:
+			for event in pygame.event.get():
+				if event.type == pygame.KEYDOWN:
+					k = event.key
+					if  k == pygame.K_ESCAPE:
+						self.done = True
+						self.quit = True
+
+					if k == pygame.K_r:
+						self.done = True
+						self.restart = True				
+
+		return self.done, self.restart, self.quit							
 
 
 	
@@ -808,6 +823,49 @@ class ChickenMain(object):
 		self.model = ChickenModel()
 		self.view = ChickenView(self.model)
 		self.controller = ChickenController(self.model)
+
+
+
+	def restart(self):
+		"""
+		Restarts the game through the game over sign, re-initializes everything and then restarts the main loop
+		"""
+		self.model = ChickenModel()
+		self.view = ChickenView(self.model)
+		self.controller = ChickenController(self.model)
+		self.clock = pygame.time.Clock()
+		self.MainLoop()	
+
+
+	def gameover(self):
+		"""
+		Presentation after Chicken has died, gives option to quit or restart, upon which you enter the restart method
+		"""
+
+		done = False
+		start = False
+		restart = False
+		quit = False
+		lastGetTicks = pygame.time.get_ticks()
+
+		loop = True
+
+		while loop:
+			t = pygame.time.get_ticks()
+			dt = (t - lastGetTicks) / 1000.0
+			lastGetTicks = t
+
+			done, restart, quit = self.controller.process_events(self.model.alive)
+			self.model.update(dt, self.model.alive, start)
+			self.view.draw(self.model.alive, start)
+
+			if restart ==  True:
+				self.restart()
+			elif quit ==  True:
+				loop = False
+				pygame.quit()
+				sys.exit()
+				break	
 
 		
 	def MainLoop(self):
@@ -833,7 +891,7 @@ class ChickenMain(object):
 				self.model.update(dt, self.model.alive, start)
 				self.view.draw(self.model.alive, start)
 				if not start:
-					done = self.controller.process_events(self.model.alive)
+					done, restart, quit = self.controller.process_events(self.model.alive)
 				else:
 					for event in pygame.event.get():
 						if event.type == pygame.KEYDOWN:
@@ -849,7 +907,7 @@ class ChickenMain(object):
 					dt = (t - lastGetTicks) / 1000.0
 					lastGetTicks = t
 
-					done = self.controller.process_events(self.model.alive)
+					done, restart, quit = self.controller.process_events(self.model.alive)
 					self.model.update(dt, self.model.alive, start)
 					self.view.draw(self.model.alive, start)
 
@@ -862,13 +920,14 @@ class ChickenMain(object):
 					count = 0
                 if self.model.score > count:
                     count = self.model.score
-                pickle.dump(count,open(CURR_DIR + '/hiscore.txt', 'wb'))    
+                pickle.dump(count,open(CURR_DIR + '/hiscore.txt', 'wb'))           
 
 
 
-		pygame.quit()
-		sys.exit()	
+
+
 
 if __name__ == '__main__':
 	MainWindow = ChickenMain()
 	MainWindow.MainLoop()
+	MainWindow.gameover()
