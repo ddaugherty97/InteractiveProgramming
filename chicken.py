@@ -29,14 +29,13 @@ CURR_DIR = os.path.dirname(os.path.realpath(__file__))
 
 class Cloud(pygame.sprite.Sprite):
 
-	def __init__(self, xpos, ypos, left):
+	def __init__(self, xpos, ypos, xvel, yvel):
 		pygame.sprite.Sprite.__init__(self)
 
 		self.image = pygame.image.load('cloud2.png')   #loading cloud picture
-		scale = random.random() + 1
-		self.image = pygame.transform.scale(self.image, (int(scale*200),int(scale*100)))   #scales the clouds to a randomly set size
+		self.scale = random.random() + 1
+		self.image = pygame.transform.scale(self.image, (int(self.scale*200),int(self.scale*100)))   #scales the clouds to a randomly set size
 		self.image.fill((255, 255, 255, 200), None, pygame.BLEND_RGBA_MULT)
-		self.left = left
 		if random.choice([True, False]):
 			self.image = pygame.transform.flip(self.image, True, False)   #randomly flips the clouds for variety
 
@@ -45,32 +44,24 @@ class Cloud(pygame.sprite.Sprite):
 		self.xpos = xpos
 		self.ypos = ypos
 		self.rect = pygame.Rect(self.xpos, self.ypos, self.image.get_width(), self.image.get_height())
-		if not left:
-			self.yvel = scale*10
-			self.xvel = 0
-		else:
-			self.yvel = 0
-			self.xvel = scale*10
+		self.yvel = yvel
+		self.xvel = xvel
 
 
 	def is_in_range(self):
 		"""
 		checks if the cloud hit the top
 		"""
-		if not self.left:
-			return self.rect.bottom > 0
-		else:
-			return self.rect.right > 0
+
+		return self.rect.bottom > 0 and self.rect.right > 0
+
 
 	def update(self):
 		"""
 		Moves the rectangle based on x-vel and y-vel
 		"""
-		
-		if not self.left:
-			self.rect = self.rect.move(0, -self.yvel)
-		else:
-			self.rect = self.rect.move(-self.xvel, 0)
+
+		self.rect = self.rect.move(self.scale * self.xvel, self.scale * self.yvel)
 
 
 class Sky():
@@ -78,15 +69,17 @@ class Sky():
 	Represents all the clouds in the game
 	"""
 
-	def __init__(self, model, left):
+	def __init__(self, model, left, xvel, yvel):
 		self.model = model
 		self.clouds = pygame.sprite.Group()
 		self.left = left
+		self.xvel = xvel
+		self.yvel = yvel
 
 		self.num_clouds = 0
 
 		for i in range(10):
-			self.clouds.add(Cloud(random.randint(0,SCREEN_W), random.randint(0,SCREEN_H), self.left))  #creates a group of clouds in a Group
+			self.clouds.add(Cloud(random.randint(0,SCREEN_W), random.randint(0,SCREEN_H), xvel, yvel))  #creates a group of clouds in a Group
 			self.num_clouds += 1
 	
 
@@ -99,14 +92,17 @@ class Sky():
 			for cloud in self.clouds:
 				if not cloud.is_in_range():   #if the cloud is out of range, kill it and replace it with new a one
 					cloud.kill()
-					Cloud(random.randint(0,SCREEN_W), SCREEN_H, self.left).add(self.clouds)
+					Cloud(random.randint(0,SCREEN_W), SCREEN_H, self.xvel, self.yvel).add(self.clouds)
 		else:
 			for cloud in self.clouds:
 				if not cloud.is_in_range():   #if the cloud is out of range, kill it and replace it with new a one
 					cloud.kill()
-					Cloud(SCREEN_W, random.randint(0, SCREEN_H), self.left).add(self.clouds)
+					Cloud(SCREEN_W, random.randint(0, SCREEN_H), self.xvel, self.yvel).add(self.clouds)
 
-		for cloud in self.clouds:  #update all clouds to move up
+		for cloud in self.clouds: 
+		# update all clouds to move up
+			cloud.xvel = self.xvel
+			cloud.yvel = self.yvel
 			cloud.update()
 
 
@@ -346,11 +342,6 @@ class Eggs():
 			egg.update(hawks, dt)		
 				
 
-			
-
-
-
-
 class Hawk(pygame.sprite.Sprite):
 	"""
 	The Hawk Class, the predators
@@ -521,7 +512,7 @@ class Plane(pygame.sprite.Sprite):
 		self.counter = 0.0  #counter for delay of start
 		self.index = 0  #column of the subimage
 		self.animation_speed = 0.10  #animation speed of the hawk
-
+		
 		self.width = 120  #width ofthe subimage
 		self.height = 62   #height of the subimage
 
@@ -567,13 +558,14 @@ class Horizon(pygame.sprite.Sprite):
 
 	def __init__(self):
 		pygame.sprite.Sprite.__init__(self)
-		self.image = pygame.image.load('horizon.png')
+		self.image = pygame.image.load('background.png')
 		self.xpos = 0
 		self.ypos = SCREEN_H
 		self.yvel = -1
-		self.animation_speed = 0.40
+		self.animation_speed = 0.50
 		self.dt_image = 0
 
+		self.image = pygame.transform.scale(self.image, (SCREEN_W, SCREEN_H/2))
 		self.rect = pygame.Rect(self.xpos, self.ypos, SCREEN_W, SCREEN_H/2)
 
 	def move(self):
@@ -615,8 +607,7 @@ class ChickenModel:
 
 		self.hawks = Flock(self)
 
-		self.sky = Sky(self, False)
-		self.start_sky = Sky(self, True)
+		self.sky = Sky(self, True, -10, 0)
 
 	def update(self, dt, alive, start):
 		"""
@@ -624,9 +615,17 @@ class ChickenModel:
 		"""
 
 		if start:
-			self.start_sky.update()
+			self.sky.xvel = -10
+			self.sky.yvel = 0
+			self.sky.left = True
+			self.sky.update()
 			self.plane_group.update(dt)
 		else:
+			self.sky.xvel = 0
+			self.sky.yvel = -10
+			
+			self.sky.left = False
+
 			self.sky.update()
 			self.plane_group.update(dt)
 			self.hawks.update(self.chicken, dt, start)
@@ -656,7 +655,7 @@ class ChickenModel:
 		Gives a list of things to draw in view
 		"""
 		if start:
-			return [self.horizon_group, self.start_sky.clouds, self.hawks.hawkfleet, self.chicken_sprite, self.Eggs.egggroup, self.plane_group]
+			return [self.horizon_group, self.sky.clouds, self.hawks.hawkfleet, self.chicken_sprite, self.Eggs.egggroup, self.plane_group]
 		else:
 			return [self.horizon_group, self.plane_group, self.sky.clouds, self.hawks.hawkfleet, self.chicken_sprite, self.Eggs.egggroup]
 
@@ -679,10 +678,10 @@ class ChickenView:
 		self.font3 = pygame.font.Font(CURR_DIR + '/Chicken3.ttf', 80)
 
 		self.start_screen = self.font2.render('CAP\'N CHICKEN', False, RED)
-		self.start_screen1 = self.font.render('USE THE ARROW KEYS TO MOVE', False, RED)
-		self.start_screen2= self.font.render('USE SPACE TO FIRE EGGS', False, RED)
-		self.start_screen3 = self.font.render('KILL AND DODGE VILLANOUS HAWKS', False, RED)
-		self.start_screen4 = self.font.render('LAST AS LONG AS YOU CAN!!!', False, RED)
+		self.start_screen1 = self.font.render('USE THE ARROW KEYS TO MOVE', False, BLACK)
+		self.start_screen2= self.font.render('USE SPACE TO FIRE EGGS', False, BLACK)
+		self.start_screen3 = self.font.render('KILL AND DODGE VILLANOUS HAWKS', False, BLACK)
+		self.start_screen4 = self.font.render('LAST AS LONG AS YOU CAN!!!', False, BLACK)
 		self.start_screen5 = self.font3.render('PRESS ANY KEY TO START', False, RED)
 
 		self.game_over = self.font2.render('GAME OVER', False, RED)
