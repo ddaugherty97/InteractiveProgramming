@@ -24,9 +24,6 @@ SCREEN_H = 900
 CURR_DIR = os.path.dirname(os.path.realpath(__file__))
 
 
-
-
-
 class Cloud(pygame.sprite.Sprite):
 
 	def __init__(self, xpos, ypos, xvel, yvel):
@@ -301,7 +298,10 @@ class EggShot(pygame.sprite.Sprite):
 
 		for hawk in hawks:
 			if self.hitbox.colliderect(hawk.hitbox):
-				self.model.score += 1000
+				if isinstance(hawk, Boss_Hawk):
+					self.model.score += 5000
+				else:
+					self.model.score += 1000
 				self.kill()
 				hawk.alive = False
 				hawk.yvel = 15
@@ -454,11 +454,119 @@ class Hawk(pygame.sprite.Sprite):
 		self.image = pygame.transform.scale(self.image, (150,150))
 
 
+class Boss_Hawk(pygame.sprite.Sprite):
+	"""
+	The Hawk Class, the predators
+	"""
+
+	def __init__(self, pos, xvel, top_hawk):
+		pygame.sprite.Sprite.__init__(self)
+
+
+		self.alive = True # The hawk's life, in reference to eggs
+
+		self.sheet = pygame.image.load('bosshawkspritesheet.png')
+		self.sprite_num = 2  #row of the subimage
+		self.dt_image = 0.0
+		self.counter = 0.0  #counter for delay of start
+		self.index = 0  #column of the subimage
+		self.animation_speed = 0.10  #animation speed of the hawk
+
+		self.width = 85  #width ofthe subimage
+		self.height = 69.95   #height of the subimage
+
+		self.sheet.set_clip(pygame.Rect(self.index * self.width, self.sprite_num * self.height, self.width, self.height))
+		self.image = self.sheet.subsurface(self.sheet.get_clip())  #set and get subimage
+
+		self.image = pygame.transform.scale(self.image, (300,300))
+		self.index += 1
 		
 
+		if top_hawk:   #if top hawk, then determines where the hawk will appear from on the top and bottom
+			self.ypos = pos
+			if pos == -300 or pos == SCREEN_H:
+				self.xpos = random.randint(-300, SCREEN_W)
+			else:
+				self.xpos = random.choice([-300, SCREEN_W])	
+		else:		                        #if not, then determines where the hawk will appear from the sides
+			self.xpos = pos
+			if pos == -300 or pos == SCREEN_W:
+				self.ypos = random.randint(-300,SCREEN_H)
+			else:
+				self.ypos = random.choice([-300,SCREEN_H])
 
 
+		if  self.xpos > SCREEN_W/2:  #orients the hawk properly based on where it came from
+			self.xvel = -1 * xvel
+		else:
+			self.sprite_num = 1
+			self.xvel = xvel	
 
+		if self.ypos > SCREEN_H/2:	
+			self.yvel = -1 * 4
+		else:
+			self.yvel = 4
+
+		self.rect = pygame.Rect(self.xpos, self.ypos, 300, 300)	
+		self.hitbox = pygame.Rect(self.xpos + 37.5, self.ypos + 37.5, 225, 225)
+
+	def is_in_range(self):
+		"""
+		Checks if still within screen boundaries
+		"""
+
+		return self.rect.right <= SCREEN_W +300 and self.rect.left >= -300 and self.rect.bottom <= SCREEN_H+300 and self.rect.top >= -300	
+
+	def update(self, chicken, dt, start):
+		"""
+		Updates hawks to chase the chicken
+		"""
+
+		self.dt_image += dt
+
+		if self.alive:
+			self.counter += dt  
+			if not start:
+				if self.counter > 2:  #wait 2 seconds before letting hawks fly in
+					x_diff = chicken.rect.right - self.rect.right   
+					y_diff = chicken.rect.top - self.rect.top
+					vector_mag = math.sqrt(x_diff**2 + y_diff**2) * 7   #calculates how to chase the chicken
+					self.xvel = self.xvel + x_diff / vector_mag 
+					if self.xvel < 0:
+						self.sprite_num = 2  #changes orientation of hawk based on which direction it's flying
+					else:
+						self.sprite_num = 1   #changes orientation based on direction of flight
+					self.yvel = self.yvel + y_diff / vector_mag
+
+					self.rect = self.rect.move(self.xvel, self.yvel)
+					self.hitbox = self.hitbox.move(self.xvel, self.yvel)
+
+				if self.dt_image > self.animation_speed:    #changes the image incrementally based on time for animation
+					self.index += 1
+					if self.index >= 4:
+						self.index = 0
+					self.dt_image = 0
+					self.sheet.set_clip(pygame.Rect(self.index * self.width, self.sprite_num * self.height, self.width, self.height))
+					self.image = self.sheet.subsurface(self.sheet.get_clip())  
+				
+		else:
+
+			self.sheet.set_clip(pygame.Rect(0 * self.width, 5 * self.height, self.width -17, self.height)) #subimage for dead hawk
+			self.image = self.sheet.subsurface(self.sheet.get_clip())
+
+			if self.sprite_num == 2 :   #if the hawk was facing the other direction when dying, it will flip the death image
+				self.image = pygame.transform.flip(self.image, True, False)
+			self.xvel = 0
+			self.yvel = 10
+
+			self.rect = self.rect.move(self.xvel, self.yvel)
+			self.hitbox = self.hitbox.move(5000, 5000)
+
+	
+		self.image = pygame.transform.scale(self.image, (300,300))
+
+
+		
 class Flock():
 	"""
 	Represents all the Hawks in the game
@@ -472,6 +580,12 @@ class Flock():
 
 		self.num_hawks = 0
 
+		self.threshold = 3000
+		self.counter = 0
+
+		self.boss_threshold = 10000
+		self.boss_counter = 0
+
 		for i in range(1):  #makes a bunch of hawks
 			Hawk(random.randint(-150,SCREEN_H), random.randint(1, 7), True).add(self.hawkfleet)
 			Hawk(random.randint(-150,SCREEN_W), random.randint(1, 7), False).add(self.hawkfleet)
@@ -484,19 +598,41 @@ class Flock():
 		Updates hawks in the flock, checks if they're still in range
 		"""
 
+		if self.model.score >= self.threshold:
+			if random.choice([True, False]):   
+				Hawk(random.randint(-150,SCREEN_W), random.randint(1,7), True).add(self.hawkfleet)
+				self.num_hawks += 1
+			else:
+				Hawk(random.randint(-150,SCREEN_H), random.randint(1,7), False).add(self.hawkfleet)
+				self.num_hawks += 1
+
+			self.counter += 3
+			self.threshold = self.threshold + self.counter*1000
+
+		if self.model.score >= self.boss_threshold:
+			if random.choice([True, False]):   
+				Boss_Hawk(random.randint(-300,SCREEN_W), random.randint(1,4), True).add(self.hawkfleet)
+				self.num_hawks += 1
+			else:
+				Boss_Hawk(random.randint(-300,SCREEN_H), random.randint(1,4), False).add(self.hawkfleet)
+				self.num_hawks += 1
+
+			self.boss_counter += 2
+			self.boss_threshold = self.boss_threshold + self.boss_counter*10000
 
 		for hawk in self.hawkfleet:
 
-			if not hawk.is_in_range():  #if a hawk goes out of range, kill it and replace it
-				hawk.kill()
-				self.num_hawks -= 1
+			if not hawk.is_in_range():
+				if not isinstance(hawk, Boss_Hawk):  #if a hawk goes out of range, kill it and replace it
+					hawk.kill()
+					self.num_hawks -= 1
+					if random.choice([True, False]):  
+						Hawk(random.randint(-150,SCREEN_W), random.randint(1,7), True).add(self.hawkfleet)
+						self.num_hawks += 1
+					else:
+						Hawk(random.randint(-150,SCREEN_H), random.randint(1,7), False).add(self.hawkfleet)
+						self.num_hawks += 1
 
-				if random.choice([True, False]):   
-					Hawk(random.randint(-150,SCREEN_W), random.randint(1,7), True).add(self.hawkfleet)
-					self.num_hawks += 1
-				else:
-					Hawk(random.randint(-150,SCREEN_H), random.randint(1,7), False).add(self.hawkfleet)
-					self.num_hawks += 1
 
 		for hawk in self.hawkfleet:
 			hawk.update(chicken, dt, start)	
@@ -806,18 +942,18 @@ class ChickenController:
 					k = event.key
 
 					if k == pygame.K_DOWN:
-						self.model.chicken.yvel = 10
+						self.model.chicken.yvel = 12
 						self.model.chicken.animation_speed = 0.20
 
 					if k == pygame.K_UP:
-						self.model.chicken.yvel = -10
+						self.model.chicken.yvel = -12
 						self.model.chicken.animation_speed = 0.06
 
 					if k == pygame.K_RIGHT:
-						self.model.chicken.xvel = 10
+						self.model.chicken.xvel = 12
 
 					if k == pygame.K_LEFT:
-						self.model.chicken.xvel = -10
+						self.model.chicken.xvel = -12
 
 					if k ==pygame.K_SPACE:
 						if self.model.chicken.xvel > 0:
@@ -829,15 +965,15 @@ class ChickenController:
 				elif event.type == pygame.KEYUP:
 					k = event.key
 
-					if k == pygame.K_DOWN and self.model.chicken.yvel == 10:
+					if k == pygame.K_DOWN and self.model.chicken.yvel == 12:
 						self.model.chicken.yvel = -3
 						self.model.chicken.animation_speed = 0.10		
-					if k == pygame.K_UP and self.model.chicken.yvel == -10:
+					if k == pygame.K_UP and self.model.chicken.yvel == -12:
 						self.model.chicken.yvel = -3
 						self.model.chicken.animation_speed = 0.10	
-					if k == pygame.K_LEFT and self.model.chicken.xvel == -10:
+					if k == pygame.K_LEFT and self.model.chicken.xvel == -12:
 						self.model.chicken.xvel = -.01
-					if k == pygame.K_RIGHT and self.model.chicken.xvel == 10:
+					if k == pygame.K_RIGHT and self.model.chicken.xvel == 12:
 						self.model.chicken.xvel = .01
 
 		else:
