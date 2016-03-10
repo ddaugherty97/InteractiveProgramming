@@ -151,7 +151,7 @@ class Chicken(pygame.sprite.Sprite):
 		self.xvel = 0
 		self.yvel = 0
 		self.rect = pygame.Rect(self.xpos, self.ypos, 100, 100)   #rect for Sprite
-		self.hitbox = pygame.Rect(self.xpos + 12.5, self.ypos + 12.5, 75, 75)  #hitbox of the chicken, defined as 3/4 of its size
+		self.hitbox = pygame.Rect(self.xpos + 25, self.ypos + 25, 50, 50)  #hitbox of the chicken, defined as 3/4 of its size
 		
 
 
@@ -423,7 +423,7 @@ class Hawk(pygame.sprite.Sprite):
 			self.yvel = 7
 
 		self.rect = pygame.Rect(self.xpos, self.ypos, 150, 150)	
-		self.hitbox = pygame.Rect(self.xpos + 18.75, self.ypos + 18.75, 112.5, 112.5)
+		self.hitbox = pygame.Rect(self.xpos + 37.5, self.ypos + 37.5, 75, 75)
 
 	def is_in_range(self):
 		"""
