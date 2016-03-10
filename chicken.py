@@ -317,7 +317,7 @@ class EggShot(pygame.sprite.Sprite):
 						hawk.alive = False    #hawk is officially no longer alive
 						hawk.yvel = 15     #hawks drop off the screen
 						hawk.xvel = 0
-						self.model.score += 5000
+						self.model.score += 7000
 					self.kill()
 
 				else:
@@ -510,7 +510,7 @@ class Boss_Hawk(pygame.sprite.Sprite):
 
 		self.image = pygame.transform.scale(self.image, (300,300))
 		self.index += 1
-		self.lives = 2
+		self.lives = 4
 
 		#determining the position
 
@@ -584,6 +584,8 @@ class Boss_Hawk(pygame.sprite.Sprite):
 					self.image = self.sheet.subsurface(self.sheet.get_clip())  
 				
 		else:
+			if not self.is_in_range():
+				self.kill()
 
 			self.sheet.set_clip(pygame.Rect(0 * self.width, 5 * self.height, self.width -17, self.height)) #subimage for dead boss
 			self.image = self.sheet.subsurface(self.sheet.get_clip())
@@ -651,8 +653,8 @@ class Flock():
 				Boss_Hawk(random.randint(-300,SCREEN_H), random.randint(1,4), False).add(self.hawkfleet)
 				self.num_hawks += 1
 
-			self.boss_counter += 2   #increment the counter 
-			self.boss_threshold = self.boss_threshold + self.boss_counter*10000  #set the new threshold to be a function higher than the previous one
+			self.boss_counter += 1  #increment the counter 
+			self.boss_threshold = self.boss_threshold + self.boss_counter*15000  #set the new threshold to be a function higher than the previous one
 
 		for hawk in self.hawkfleet:
 
