@@ -510,7 +510,7 @@ class Boss_Hawk(pygame.sprite.Sprite):
 
 		self.image = pygame.transform.scale(self.image, (300,300))
 		self.index += 1
-		self.lives = 2
+		self.lives = 3
 
 		#determining the position
 
