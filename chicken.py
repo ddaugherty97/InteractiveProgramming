@@ -1,6 +1,8 @@
 """
 The  Interactive Vertical-Scrolling Shooting Game of Chickens, made with pygame
 
+Cap'n Chicken the Game
+
 Kevin Zhang and Daniel Daugherty
 Software Design Spring 2016
 """
@@ -11,7 +13,7 @@ from pygame.locals import *
 import random, math
 import pickle
 
-FRAMERATE = 60
+FRAMERATE = 60  #fps for the game
 
 # Colors
 BLACK    = (  0,   0,   0)
@@ -21,33 +23,40 @@ SCREEN_W = 1600
 SCREEN_H = 900
 
 
-CURR_DIR = os.path.dirname(os.path.realpath(__file__))
+CURR_DIR = os.path.dirname(os.path.realpath(__file__))  #used for filepathing
 
 
 class Cloud(pygame.sprite.Sprite):
+	"""
+	Clouds for the game background
+	"""
 
 	def __init__(self, xpos, ypos, xvel, yvel):
 		pygame.sprite.Sprite.__init__(self)
 
+
+		#making the image
+
 		self.image = pygame.image.load('cloud2.png')   #loading cloud picture
-		self.scale = random.random() + 1
+
+		self.scale = random.random() + 1  #scaling number for cloud size and cloud speed
 		self.image = pygame.transform.scale(self.image, (int(self.scale*200),int(self.scale*100)))   #scales the clouds to a randomly set size
-		self.image.fill((255, 255, 255, 200), None, pygame.BLEND_RGBA_MULT)
+		self.image.fill((255, 255, 255, 200), None, pygame.BLEND_RGBA_MULT) #makes the clouds transparent for better visibility
 		if random.choice([True, False]):
 			self.image = pygame.transform.flip(self.image, True, False)   #randomly flips the clouds for variety
 
-		
+		#determining position
 		
 		self.xpos = xpos
 		self.ypos = ypos
-		self.rect = pygame.Rect(self.xpos, self.ypos, self.image.get_width(), self.image.get_height())
+		self.rect = pygame.Rect(self.xpos, self.ypos, self.image.get_width(), self.image.get_height())   #rect for Sprite
 		self.yvel = yvel
 		self.xvel = xvel
 
 
 	def is_in_range(self):
 		"""
-		checks if the cloud hit the top
+		checks if the cloud hit the top, or the right in regards to the starting screen
 		"""
 
 		return self.rect.bottom > 0 and self.rect.right > 0
@@ -68,7 +77,7 @@ class Sky():
 
 	def __init__(self, model, left, xvel, yvel):
 		self.model = model
-		self.clouds = pygame.sprite.Group()
+		self.clouds = pygame.sprite.Group() #creates a group to hold all clouds on the screen
 		self.left = left
 		self.xvel = xvel
 		self.yvel = yvel
@@ -76,7 +85,7 @@ class Sky():
 		self.num_clouds = 0
 
 		for i in range(10):
-			self.clouds.add(Cloud(random.randint(0,SCREEN_W), random.randint(0,SCREEN_H), xvel, yvel))  #creates a group of clouds in a Group
+			self.clouds.add(Cloud(random.randint(0,SCREEN_W), random.randint(0,SCREEN_H), xvel, yvel))  #adds clouds to the group
 			self.num_clouds += 1
 	
 
@@ -85,19 +94,20 @@ class Sky():
 		makes the clouds scroll up
 		"""
 
-		if not self.left:
+		if not self.left:  #updating the starting screen
 			for cloud in self.clouds:
 				if not cloud.is_in_range():   #if the cloud is out of range, kill it and replace it with new a one
 					cloud.kill()
 					Cloud(random.randint(0,SCREEN_W), SCREEN_H, self.xvel, self.yvel).add(self.clouds)
+
+
 		else:
-			for cloud in self.clouds:
+			for cloud in self.clouds:   #updating the actual game
 				if not cloud.is_in_range():   #if the cloud is out of range, kill it and replace it with new a one
 					cloud.kill()
 					Cloud(SCREEN_W, random.randint(0, SCREEN_H), self.xvel, self.yvel).add(self.clouds)
 
-		for cloud in self.clouds: 
-		# update all clouds to move up
+		for cloud in self.clouds:    # update all clouds to move up
 			cloud.xvel = self.xvel
 			cloud.yvel = self.yvel
 			cloud.update()
@@ -114,16 +124,16 @@ class Chicken(pygame.sprite.Sprite):
 	def __init__ (self):
 		pygame.sprite.Sprite.__init__(self)
 
-
+		#making the image
 
 		self.alive = True # the chicken's life
 
-		self.sheet = pygame.image.load('chickenspritesheet.png')
+		self.sheet = pygame.image.load('chickenspritesheet.png')  #chicken sprite sheet
+
 		self.sprite_num = 3   #row of the chicken's subimage
 		self.dt_image = 0.0   #the time for changing the picture of the image
 		self.index = 0   #column of the chicken's subimage
 		self.animation_speed = 0.10  #speed of the chicken's animation sequence
-		self.accelerate = False
 
 		self.width = 88  #width of the subimage
 		self.height = 54  #height of the subimage
@@ -133,12 +143,14 @@ class Chicken(pygame.sprite.Sprite):
 		self.image = pygame.transform.scale(self.image, (125,100))
 		self.index += 1
 
+		#determining the position
+
 		
 		self.xpos = SCREEN_W/2 -50
 		self.ypos = 100
 		self.xvel = 0
 		self.yvel = 0
-		self.rect = pygame.Rect(self.xpos, self.ypos, 100, 100)
+		self.rect = pygame.Rect(self.xpos, self.ypos, 100, 100)   #rect for Sprite
 		self.hitbox = pygame.Rect(self.xpos + 12.5, self.ypos + 12.5, 75, 75)  #hitbox of the chicken, defined as 3/4 of its size
 		
 
@@ -148,7 +160,7 @@ class Chicken(pygame.sprite.Sprite):
 		Moves the chicken around based on its rectangle
 		"""
 		if self.alive:
-			if not self.rect.right <= SCREEN_W:    #checks boundaries
+			if not self.rect.right <= SCREEN_W:    #checks boundaries: top, bottom, left, right, and if out will reset it to be just inside the boundary
 				self.rect.right = SCREEN_W -1
 			if not self.rect.left >= 0:
 				self.rect.left = 1	
@@ -168,11 +180,11 @@ class Chicken(pygame.sprite.Sprite):
 
 
 		self.correct_boxes()  #makes sure that the hitbox stays within the chicken's model
-		self.move(self.xvel, self.yvel)  #moves and checks for collision before making image
-		self.collide(hawks)
+		self.move(self.xvel, self.yvel)  #moves the chicken
+		self.collide(hawks)   #checks for collisions with hawks
 
 
-		if alive:
+		if alive:    #allows the chicken to update normally assuming it is alive
 
 			self.dt_image += dt
 			if self.dt_image > self.animation_speed:   #incrementally changes the subimage to make animation
@@ -187,8 +199,9 @@ class Chicken(pygame.sprite.Sprite):
 				else:
 					self.sheet.set_clip(pygame.Rect(self.index * self.width, self.sprite_num * self.height, self.width, self.height+23))
 					self.image = self.sheet.subsurface(self.sheet.get_clip())
-					self.image = pygame.transform.flip(self.image, True, False)
-		else:
+					self.image = pygame.transform.flip(self.image, True, False)  # if the chicken is flying the other way, flip the image
+
+		else:   #makes the chicken take the dead subimage when it's no longer alive
 			self.sheet.set_clip(pygame.Rect(2 * self.width+3, 3 * self.height+82, self.width, self.height+23))
 			self.image = self.sheet.subsurface(self.sheet.get_clip())
 
@@ -202,8 +215,8 @@ class Chicken(pygame.sprite.Sprite):
 
 		for hawk in hawks:
 			if self.hitbox.colliderect(hawk.hitbox):  #checks for collision between hitboxes
-				self.alive = False
-				self.yvel = 10   
+				self.alive = False  #officially rules the hawk as dead
+				self.yvel = 10   #the chicken just drops off the screen
 				self.xvel = 0
 
 	def correct_boxes(self):
@@ -226,7 +239,7 @@ class EggShot(pygame.sprite.Sprite):
 		#making the image and animation
 		self.model = model
 
-		self.sheet = pygame.image.load('rolling_eggs.png')
+		self.sheet = pygame.image.load('rolling_eggs.png')   #egg sprite sheet
 		self.sprite_num = 0  #row of the subimage
 		self.dt_image = 0.0
 		self.index = 0   #column of the subimage
@@ -235,7 +248,7 @@ class EggShot(pygame.sprite.Sprite):
 		self.width = 20  #width of the subimage
 		self.height = 20  #height of the subimage
 
-		self.sheet.set_clip(pygame.Rect(self.index * self.width, self.sprite_num * self.height, self.width, self.height))
+		self.sheet.set_clip(pygame.Rect(self.index * self.width, self.sprite_num * self.height, self.width, self.height))  #making the subimage for the egg
 		self.image = self.sheet.subsurface(self.sheet.get_clip())
 
 		self.image = pygame.transform.scale(self.image, (50, 50))
@@ -248,7 +261,7 @@ class EggShot(pygame.sprite.Sprite):
 
 		self.rect = pygame.Rect(side , top, 50, 50)
 
-		if self.xvel > 0:
+		if self.xvel > 0:    #makes the hitbox depending on where it was shot (from the left or right side of the chicken)
 			self.hitbox = pygame.Rect(side + 5, top + 5, 40, 40)
 		else:
 			self.hitbox = pygame.Rect(side - 5, top + 5, 40, 40)	
@@ -276,8 +289,8 @@ class EggShot(pygame.sprite.Sprite):
 		"""
 		self.dt_image +=dt
 
-		self.move(self.xvel, self.yvel)
-		self.collide(hawks)
+		self.move(self.xvel, self.yvel)   #moves the egg
+		self.collide(hawks)  #checks for collisions for hawks
 
 		if self.dt_image > self.animation_speed:   #animation to make the egg roll while dropping
 			self.index += 1
@@ -298,13 +311,13 @@ class EggShot(pygame.sprite.Sprite):
 
 		for hawk in hawks:
 			if self.hitbox.colliderect(hawk.hitbox):
-				if isinstance(hawk, Boss_Hawk):
+				if isinstance(hawk, Boss_Hawk):   #if the hawk is a Boss, then increment the score differently
 					self.model.score += 5000
 				else:
 					self.model.score += 1000
 				self.kill()
-				hawk.alive = False
-				hawk.yvel = 15
+				hawk.alive = False    #hawk is officially no longer alive
+				hawk.yvel = 15   #hawks drop off the screen
 				hawk.xvel = 0
 
 
@@ -316,7 +329,7 @@ class Eggs():
 	def __init__(self, model):
 
 		self.model = model
-		self.egggroup = pygame.sprite.Group()
+		self.egggroup = pygame.sprite.Group()   #makes the Sprite Group for eggs
 
 		self.num_eggs = 0
 
@@ -324,7 +337,7 @@ class Eggs():
 		"""
 		Creates a new egg shot given a key press on space, adds it to the group
 		"""
-		temp = EggShot(side, top, xvel, self.model)
+		temp = EggShot(side, top, xvel, self.model)    
 
 		temp.add(self.egggroup)
 
@@ -353,6 +366,9 @@ class Hawk(pygame.sprite.Sprite):
 
 		self.alive = True # The hawk's life, in reference to eggs
 
+
+		#makes the image
+
 		self.sheet = pygame.image.load('hawkspritesheet.png')
 		self.sprite_num = 2  #row of the subimage
 		self.dt_image = 0.0
@@ -368,6 +384,9 @@ class Hawk(pygame.sprite.Sprite):
 
 		self.image = pygame.transform.scale(self.image, (150,150))
 		self.index += 1
+
+
+		#determines position
 		
 
 		if top_hawk:   #if top hawk, then determines where the hawk will appear from on the top and bottom
@@ -376,7 +395,8 @@ class Hawk(pygame.sprite.Sprite):
 				self.xpos = random.randint(-150, SCREEN_W)
 			else:
 				self.xpos = random.choice([-150, SCREEN_W])	
-		else:		                        #if not, then determines where the hawk will appear from the sides
+
+		else:		      #if not, then determines where the hawk will appear from the sides
 			self.xpos = pos
 			if pos == -150 or pos == SCREEN_W:
 				self.ypos = random.randint(-150,SCREEN_H)
@@ -426,7 +446,7 @@ class Hawk(pygame.sprite.Sprite):
 						self.sprite_num = 1   #changes orientation based on direction of flight
 					self.yvel = self.yvel + y_diff / vector_mag
 
-					self.rect = self.rect.move(self.xvel, self.yvel)
+					self.rect = self.rect.move(self.xvel, self.yvel)  #moves the hawks
 					self.hitbox = self.hitbox.move(self.xvel, self.yvel)
 
 				if self.dt_image > self.animation_speed:    #changes the image incrementally based on time for animation
@@ -445,10 +465,10 @@ class Hawk(pygame.sprite.Sprite):
 			if self.sprite_num == 2 :   #if the hawk was facing the other direction when dying, it will flip the death image
 				self.image = pygame.transform.flip(self.image, True, False)
 			self.xvel = 0
-			self.yvel = 10
+			self.yvel = 10   #the hawk drops off the screen
 
-			self.rect = self.rect.move(self.xvel, self.yvel)
-			self.hitbox = self.hitbox.move(5000, 5000)
+			self.rect = self.rect.move(self.xvel, self.yvel)   #move the hawk
+			self.hitbox = self.hitbox.move(5000, 5000)    #the hitbox is essentially removed from the screen
 
 	
 		self.image = pygame.transform.scale(self.image, (150,150))
@@ -456,14 +476,17 @@ class Hawk(pygame.sprite.Sprite):
 
 class Boss_Hawk(pygame.sprite.Sprite):
 	"""
-	The Hawk Class, the predators
+	The Alpha Hawk Class, the head honcho worth millions
 	"""
 
 	def __init__(self, pos, xvel, top_hawk):
 		pygame.sprite.Sprite.__init__(self)
 
 
-		self.alive = True # The hawk's life, in reference to eggs
+		self.alive = True # The  Boss hawk's life, in reference to eggs
+
+
+		#making the image
 
 		self.sheet = pygame.image.load('bosshawkspritesheet.png')
 		self.sprite_num = 2  #row of the subimage
@@ -480,6 +503,9 @@ class Boss_Hawk(pygame.sprite.Sprite):
 
 		self.image = pygame.transform.scale(self.image, (300,300))
 		self.index += 1
+
+
+		#determining the position
 		
 
 		if top_hawk:   #if top hawk, then determines where the hawk will appear from on the top and bottom
@@ -488,7 +514,7 @@ class Boss_Hawk(pygame.sprite.Sprite):
 				self.xpos = random.randint(-300, SCREEN_W)
 			else:
 				self.xpos = random.choice([-300, SCREEN_W])	
-		else:		                        #if not, then determines where the hawk will appear from the sides
+		else:		      #if not, then determines where the hawk will appear from the sides
 			self.xpos = pos
 			if pos == -300 or pos == SCREEN_W:
 				self.ypos = random.randint(-300,SCREEN_H)
@@ -507,7 +533,7 @@ class Boss_Hawk(pygame.sprite.Sprite):
 		else:
 			self.yvel = 4
 
-		self.rect = pygame.Rect(self.xpos, self.ypos, 300, 300)	
+		self.rect = pygame.Rect(self.xpos, self.ypos, 300, 300)	   #bigger size for the hawk
 		self.hitbox = pygame.Rect(self.xpos + 37.5, self.ypos + 37.5, 225, 225)
 
 	def is_in_range(self):
@@ -527,7 +553,7 @@ class Boss_Hawk(pygame.sprite.Sprite):
 		if self.alive:
 			self.counter += dt  
 			if not start:
-				if self.counter > 2:  #wait 2 seconds before letting hawks fly in
+				if self.counter > 2:  #wait 2 seconds before letting boss fly in
 					x_diff = chicken.rect.right - self.rect.right   
 					y_diff = chicken.rect.top - self.rect.top
 					vector_mag = math.sqrt(x_diff**2 + y_diff**2) * 7   #calculates how to chase the chicken
@@ -538,7 +564,7 @@ class Boss_Hawk(pygame.sprite.Sprite):
 						self.sprite_num = 1   #changes orientation based on direction of flight
 					self.yvel = self.yvel + y_diff / vector_mag
 
-					self.rect = self.rect.move(self.xvel, self.yvel)
+					self.rect = self.rect.move(self.xvel, self.yvel)   #moves the boss hawk
 					self.hitbox = self.hitbox.move(self.xvel, self.yvel)
 
 				if self.dt_image > self.animation_speed:    #changes the image incrementally based on time for animation
@@ -551,16 +577,16 @@ class Boss_Hawk(pygame.sprite.Sprite):
 				
 		else:
 
-			self.sheet.set_clip(pygame.Rect(0 * self.width, 5 * self.height, self.width -17, self.height)) #subimage for dead hawk
+			self.sheet.set_clip(pygame.Rect(0 * self.width, 5 * self.height, self.width -17, self.height)) #subimage for dead boss
 			self.image = self.sheet.subsurface(self.sheet.get_clip())
 
 			if self.sprite_num == 2 :   #if the hawk was facing the other direction when dying, it will flip the death image
 				self.image = pygame.transform.flip(self.image, True, False)
 			self.xvel = 0
-			self.yvel = 10
+			self.yvel = 10  #boss drops off the screen
 
-			self.rect = self.rect.move(self.xvel, self.yvel)
-			self.hitbox = self.hitbox.move(5000, 5000)
+			self.rect = self.rect.move(self.xvel, self.yvel)   #moves the boss
+			self.hitbox = self.hitbox.move(5000, 5000)  #boss's hitbox is removed from the game
 
 	
 		self.image = pygame.transform.scale(self.image, (300,300))
@@ -576,15 +602,15 @@ class Flock():
 
 		self.model = model
 
-		self.hawkfleet = pygame.sprite.Group()
+		self.hawkfleet = pygame.sprite.Group()  #group for all hawks, both little and alpha
 
 		self.num_hawks = 0
 
-		self.threshold = 3000
-		self.counter = 0
+		self.threshold = 3000    #threshold for increasing the number of hawks
+		self.counter = 0   #counter for increasing the threshold
 
-		self.boss_threshold = 10000
-		self.boss_counter = 0
+		self.boss_threshold = 10000  #theshold for releasing boss hawks into the game
+		self.boss_counter = 0   #counter for increasing the boss threshold
 
 		for i in range(1):  #makes a bunch of hawks
 			Hawk(random.randint(-150,SCREEN_H), random.randint(1, 7), True).add(self.hawkfleet)
@@ -598,7 +624,7 @@ class Flock():
 		Updates hawks in the flock, checks if they're still in range
 		"""
 
-		if self.model.score >= self.threshold:
+		if self.model.score >= self.threshold:    #if the score passes the regular threshold, make a new hawk
 			if random.choice([True, False]):   
 				Hawk(random.randint(-150,SCREEN_W), random.randint(1,7), True).add(self.hawkfleet)
 				self.num_hawks += 1
@@ -606,10 +632,10 @@ class Flock():
 				Hawk(random.randint(-150,SCREEN_H), random.randint(1,7), False).add(self.hawkfleet)
 				self.num_hawks += 1
 
-			self.counter += 3
-			self.threshold = self.threshold + self.counter*1000
+			self.counter += 4   #increment the counter
+			self.threshold = self.threshold + self.counter*1000  #set the new threshold to be a function higher than the previous one
 
-		if self.model.score >= self.boss_threshold:
+		if self.model.score >= self.boss_threshold:   #if the score passes the boss threshold, summon a boss
 			if random.choice([True, False]):   
 				Boss_Hawk(random.randint(-300,SCREEN_W), random.randint(1,4), True).add(self.hawkfleet)
 				self.num_hawks += 1
@@ -617,13 +643,13 @@ class Flock():
 				Boss_Hawk(random.randint(-300,SCREEN_H), random.randint(1,4), False).add(self.hawkfleet)
 				self.num_hawks += 1
 
-			self.boss_counter += 2
-			self.boss_threshold = self.boss_threshold + self.boss_counter*10000
+			self.boss_counter += 2   #increment the counter 
+			self.boss_threshold = self.boss_threshold + self.boss_counter*10000  #set the new threshold to be a function higher than the previous one
 
 		for hawk in self.hawkfleet:
 
-			if not hawk.is_in_range():
-				if not isinstance(hawk, Boss_Hawk):  #if a hawk goes out of range, kill it and replace it
+			if not hawk.is_in_range():    #if a hawk goes out of range, kill it and replace it
+				if not isinstance(hawk, Boss_Hawk):  #makes sure that the boss hawks never leave the game until they're killed
 					hawk.kill()
 					self.num_hawks -= 1
 					if random.choice([True, False]):  
@@ -639,8 +665,15 @@ class Flock():
 
 class Plane(pygame.sprite.Sprite):
 
+	"""
+	The Plane for the start screen
+	"""
+
 	def __init__(self):
 		pygame.sprite.Sprite.__init__(self)
+
+
+		#makes the image
 
 		self.sheet = pygame.image.load('plane.png')
 		self.sprite_num = 0  #row of the subimage
@@ -659,6 +692,8 @@ class Plane(pygame.sprite.Sprite):
 
 		self.index += 1
 
+		#determines position
+
 		self.xpos = 730
 		self.ypos = 132
 
@@ -668,16 +703,23 @@ class Plane(pygame.sprite.Sprite):
 		self.rect = pygame.Rect(self.xpos, self.ypos, 120, 60)
 
 	def move(self):
+		"""
+		moves the plane to slowly fly out of the screen upon start
+		"""
 
 		self.rect = self.rect.move(self.xvel, self.yvel)
 
 	def update(self, dt):
 
-		if self.rect.bottom < -100:
+		"""
+		updates the plane, basically making it move
+		"""
+
+		if self.rect.bottom < -100:   #if it's out of the screen, then kill the plane
 			self.kill()
 
 		else:
-			self.move()
+			self.move()   #else move the plane
 
 			self.dt_image += dt
 			if self.dt_image > self.animation_speed:   #incrementally changes the subimage to make animation
@@ -691,9 +733,16 @@ class Plane(pygame.sprite.Sprite):
 			self.image = pygame.transform.scale(self.image, (200,100))
 
 class Horizon(pygame.sprite.Sprite):
+	"""
+	Makes the background horizon
+	"""
 
 	def __init__(self):
 		pygame.sprite.Sprite.__init__(self)
+
+
+		#makes the image and position
+
 		self.image = pygame.image.load('background.png')
 		self.xpos = 0
 		self.ypos = SCREEN_H
@@ -705,14 +754,19 @@ class Horizon(pygame.sprite.Sprite):
 		self.rect = pygame.Rect(self.xpos, self.ypos, SCREEN_W, SCREEN_H/2)
 
 	def move(self):
+		"""
+		moves the horizon slowly to come up
+		"""
 
 		self.rect = self.rect.move(0, self.yvel)
 
 	def update(self, dt):
-
-		if not self.rect.bottom < SCREEN_H:
-			self.dt_image += dt
-			if self.dt_image > self.animation_speed:
+		"""
+		updates the horizon to slowly rise, making it appear as though you were falling in the sky
+		"""
+		if not self.rect.bottom < SCREEN_H:  #makes sure the picture doesn't come off the bottom of the screen
+			self.dt_image += dt   
+			if self.dt_image > self.animation_speed:  #moves the pictures based on an increment
 				self.move()
 				self.dt_image = 0
 
@@ -726,15 +780,14 @@ class ChickenModel:
 		self.width = SCREEN_W
 		self.height = SCREEN_H
 
-		self.plane = Plane()
-		self.plane_group = pygame.sprite.Group(self.plane)
-		self.horizon = Horizon()
-		self.horizon_group = pygame.sprite.Group(self.horizon)
-		self.chicken = Chicken()
-		self.alive = self.chicken.alive
-		self.chicken_sprite = pygame.sprite.Group(self.chicken)
-
-		self.score = 0
+		self.plane = Plane()    #makes the plane
+		self.plane_group = pygame.sprite.Group(self.plane)  #puts the plane in its own group for drawing
+		self.horizon = Horizon()   #makes the horizon
+		self.horizon_group = pygame.sprite.Group(self.horizon)  #puts the horizon in its own group for drawing
+		self.chicken = Chicken() #makes the chicken
+		self.alive = self.chicken.alive  #gets the life of the chicken
+		self.chicken_sprite = pygame.sprite.Group(self.chicken)  #puts the chicken in its own group for drawing
+		self.score = 0  #initializes the score
 		self.dt_score = 0
 		self.score_speed = .1  #updates the score every .1 seconds
 
@@ -750,17 +803,20 @@ class ChickenModel:
 		Updates all the stuff
 		"""
 
-		if start:
+		if start:   #separate updating for the start screen
 			self.sky.xvel = -10
 			self.sky.yvel = 0
 			self.sky.left = True
 			self.sky.update()
 			self.plane_group.update(dt)
-		else:
+		else:   #updating for the real game
 			self.sky.xvel = 0
 			self.sky.yvel = -10
 			
 			self.sky.left = False
+
+
+			#update everything
 
 			self.sky.update()
 			self.plane_group.update(dt)
@@ -769,12 +825,12 @@ class ChickenModel:
 			self.Eggs.update(self.hawks.hawkfleet, dt)
 			self.horizon_group.update(dt)
 
-		if self.chicken.alive:
+		if self.chicken.alive:   #increments the score as long as the chicken is alive
 			self.dt_score += dt
 
 		self.alive = self.chicken.alive
 		
-		if self.dt_score >= self.score_speed:
+		if self.dt_score >= self.score_speed:   #updates the score
 			self.update_score(start)
 			self.dt_score = 0	
 
@@ -790,7 +846,7 @@ class ChickenModel:
 		"""
 		Gives a list of things to draw in view
 		"""
-		if start:
+		if start:   #different list for the start screen
 			return [self.horizon_group, self.sky.clouds, self.hawks.hawkfleet, self.chicken_sprite, self.Eggs.egggroup, self.plane_group]
 		else:
 			return [self.horizon_group, self.plane_group, self.sky.clouds, self.hawks.hawkfleet, self.chicken_sprite, self.Eggs.egggroup]
@@ -808,6 +864,9 @@ class ChickenView:
 		self.screen = pygame.display.set_mode((self.width, self.height))
 		pygame.display.set_caption('CAP\'N CHICKEN')
 
+
+		#text for the game
+
 		pygame.font.init()
 		self.font2 = pygame.font.Font(CURR_DIR + '/Chicken.ttf', 100)
 		self.font = pygame.font.Font(CURR_DIR + '/Chicken2.ttf', 80)
@@ -824,72 +883,46 @@ class ChickenView:
 		self.restart = self.font.render('Press r to restart',False, RED)
 		self.quit = self.font.render('Press Esc to quit', False, RED)
 
+
+		#getting the score
+
 		if os.path.exists(CURR_DIR + '/hiscore.txt'):
 			self.hiscore = str(pickle.load(open(CURR_DIR + '/hiscore.txt', 'rb')))
 		else: 
 			self.hiscore = '0'
 		self.hiscore_surf = self.font.render("HIGH: {}".format(self.hiscore), False, BLACK)
+	def fill_gradient(self, color, gradient):
+		"""
+		fill the surface with a gradient 
+		"""
+		rect = self.screen.get_rect()
+		x1 = rect.left
+		x2 = rect.right
+		y1 = rect.top
+		y2 = rect.bottom
 
-	def fill_gradient(self,color, gradient, rect=None, vertical=True, forward=True):
-	    """fill a surface with a gradient pattern
-	    Parameters:
-	    color -> starting color
-	    gradient -> final color
-	    rect -> area to fill; default is surface's rect
-	    vertical -> True=vertical; False=horizontal
-	    forward -> True=forward; False=reverse
-	    
-	    """
-	    if True: 
-	    	rect = self.screen.get_rect()
+		h = y2 - y1 #defines the length of the gradient
+		a, b = color, gradient
 
-	    x1 = rect.left
-	    x2 = rect.right
-	    y1 = rect.top
-	    y2 = rect.bottom
-	    if vertical: 
-	    	h = y2-y1
-	    else: 
-	        h = x2-x1
-	    if forward:
-	    	a, b = color, gradient
-	    else:       
-	    	b, a = color, gradient
-	    rate = (
-	        float(b[0]-a[0])/h,
-	        float(b[1]-a[1])/h,
-	        float(b[2]-a[2])/h
-	    )
-	    fn_line = pygame.draw.line
-	    if vertical:
-	        for line in range(y1,y2):
-	            color = (
-	                min(max(a[0]+(rate[0]*(line-y1)),0),255),
-	                min(max(a[1]+(rate[1]*(line-y1)),0),255),
-	                min(max(a[2]+(rate[2]*(line-y1)),0),255)
-	            )
-	            fn_line(self.screen, color, (x1,line), (x2,line))
-	    else:
-	        for col in range(x1,x2):
-	            color = (
-	                min(max(a[0]+(rate[0]*(col-x1)),0),255),
-	                min(max(a[1]+(rate[1]*(col-x1)),0),255),
-	                min(max(a[2]+(rate[2]*(col-x1)),0),255)
-	            )
-	            fn_line(self.screen, color, (col,y1), (col,y2))	
-     
+		rate = (float(b[0]-a[0])/h, float(b[1]-a[1])/h, float(b[2]-a[2])/h)  #rate of change for the three rgb values
+
+		fn_line = pygame.draw.line   #makes the lines for the gradient
+
+		for line in range(y1, y2):
+			color = (min(max(a[0]+(rate[0]*(line-y1)),0),255), min(max(a[1]+(rate[1]*(line-y1)),0),255), min(max(a[2]+(rate[2]*(line-y1)),0),255))
+			fn_line(self.screen, color, (x1, line), (x2, line))	
 	def draw(self, alive, start):
 		"""
 		Redraws game windows, fetching drawables from model
 		"""
-		self.fill_gradient(pygame.Color(0,34,102), WHITE)
+		self.fill_gradient(pygame.Color(0,34,102), WHITE)  #draws the gradient
 
-		drawables = self.model.get_drawables(start)
+		drawables = self.model.get_drawables(start)  
 
-		for g in drawables:
+		for g in drawables:   #for all things in drawables, draws them. Must be in a Group
 			g.draw(self.screen)	
 
-		if start:
+		if start:   #makes the start screen text
 			self.screen.blit(self.start_screen, (SCREEN_W/2 - 270, 230))
 			self.screen.blit(self.start_screen1, (SCREEN_W/2 - 300, 375))
 			self.screen.blit(self.start_screen2, (SCREEN_W/2 - 270, 475))
@@ -897,9 +930,9 @@ class ChickenView:
 			self.screen.blit(self.start_screen4, (SCREEN_W/2 - 280, 675))
 			self.screen.blit(self.start_screen5, (SCREEN_W/2 - 390, 775))
 
-		self.draw_score()	
+		self.draw_score()	  #draws the score on the screen
 
-		if not alive:
+		if not alive:  #if dead, draws the gameover screen
 			self.screen.blit(self.game_over, (SCREEN_W/2 - 200,SCREEN_H/2 - 80))
 			self.screen.blit(self.restart, (SCREEN_W/2 - 140,SCREEN_H/2 + 100))
 			self.screen.blit(self.quit, (SCREEN_W/2 - 140,SCREEN_H/2 + 200))
@@ -932,7 +965,7 @@ class ChickenController:
 		"""
 		pygame.event.pump
 
-		if alive:
+		if alive:   #if alive, allow all controls
 
 			for event in pygame.event.get():
 				if event.type == QUIT:
@@ -943,11 +976,11 @@ class ChickenController:
 
 					if k == pygame.K_DOWN:
 						self.model.chicken.yvel = 12
-						self.model.chicken.animation_speed = 0.20
+						self.model.chicken.animation_speed = 0.20  #flaps slower if going down
 
-					if k == pygame.K_UP:
+					if k == pygame.K_UP:  
 						self.model.chicken.yvel = -12
-						self.model.chicken.animation_speed = 0.06
+						self.model.chicken.animation_speed = 0.06  #flaps faster if going up
 
 					if k == pygame.K_RIGHT:
 						self.model.chicken.xvel = 12
@@ -955,7 +988,7 @@ class ChickenController:
 					if k == pygame.K_LEFT:
 						self.model.chicken.xvel = -12
 
-					if k ==pygame.K_SPACE:
+					if k ==pygame.K_SPACE:    #if press space, then make an egg object, which the egg being shot
 						if self.model.chicken.xvel > 0:
 							self.model.Eggs.drop_eggs(self.model.chicken.rect.left, self.model.chicken.rect.top, self.model.chicken.xvel)
 						else:
@@ -966,17 +999,17 @@ class ChickenController:
 					k = event.key
 
 					if k == pygame.K_DOWN and self.model.chicken.yvel == 12:
-						self.model.chicken.yvel = -3
+						self.model.chicken.yvel = -3   #makes the chicken continually float up
 						self.model.chicken.animation_speed = 0.10		
 					if k == pygame.K_UP and self.model.chicken.yvel == -12:
-						self.model.chicken.yvel = -3
+						self.model.chicken.yvel = -3  #makes the chicken continually float up
 						self.model.chicken.animation_speed = 0.10	
 					if k == pygame.K_LEFT and self.model.chicken.xvel == -12:
 						self.model.chicken.xvel = -.01
 					if k == pygame.K_RIGHT and self.model.chicken.xvel == 12:
 						self.model.chicken.xvel = .01
 
-		else:
+		else:   #if the chicken is dead, only allows two options, restarting or quitting the game
 			for event in pygame.event.get():
 				if event.type == pygame.KEYDOWN:
 					k = event.key
@@ -1027,13 +1060,13 @@ class ChickenMain(object):
 
 		done = False
 		start = False
-		restart = False
-		quit = False
+		restart = False  #if True, will restart the game
+		quit = False   #if True, will quit the game
 		lastGetTicks = pygame.time.get_ticks()
 
 		loop = True
 
-		while loop:
+		while loop:  #will continually loop until a control is pressed
 			t = pygame.time.get_ticks()
 			dt = (t - lastGetTicks) / 1000.0
 			lastGetTicks = t
@@ -1096,6 +1129,9 @@ class ChickenMain(object):
 
 					self.clock.tick(FRAMERATE)
 				done = True		
+
+
+				#pickles the score into a file
 
 				if os.path.exists(CURR_DIR + '/hiscore.txt'):
 					count = pickle.load(open(CURR_DIR + '/hiscore.txt', 'rb'))
