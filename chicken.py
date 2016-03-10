@@ -12,7 +12,6 @@ import pygame, sys, os
 from pygame.locals import *
 import random, math
 import pickle
-import Lumpy
 
 FRAMERATE = 60  #fps for the game
 
