@@ -215,8 +215,8 @@ class Chicken(pygame.sprite.Sprite):
 
 		for hawk in hawks:
 			if self.hitbox.colliderect(hawk.hitbox):  #checks for collision between hitboxes
-				self.alive = False  #officially rules the hawk as dead
-				self.yvel = 10   #the chicken just drops off the screen
+				self.alive = False  #officially rules the chicken as dead
+				self.yvel = 15   #the chicken just drops off the screen
 				self.xvel = 0
 
 	def correct_boxes(self):
@@ -312,13 +312,15 @@ class EggShot(pygame.sprite.Sprite):
 		for hawk in hawks:
 			if self.hitbox.colliderect(hawk.hitbox):
 				if isinstance(hawk, Boss_Hawk):    #if the hawk is a Boss, then increment the score differently
+					self.hitbox = self.hitbox.move(-5000, -5000)
+					self.kill()
 					hawk.lives -= 1
 					if hawk.lives == 0:
 						hawk.alive = False    #hawk is officially no longer alive
 						hawk.yvel = 15     #hawks drop off the screen
 						hawk.xvel = 0
-						self.model.score += 7000
-					self.kill()
+						self.model.score += 5000
+					
 
 				else:
 					self.model.score += 1000
@@ -503,14 +505,14 @@ class Boss_Hawk(pygame.sprite.Sprite):
 		self.animation_speed = 0.10  #animation speed of the hawk
 
 		self.width = 85  #width ofthe subimage
-		self.height = 69.95   #height of the subimage
+		self.height = 69.97   #height of the subimage
 
 		self.sheet.set_clip(pygame.Rect(self.index * self.width, self.sprite_num * self.height, self.width, self.height))
 		self.image = self.sheet.subsurface(self.sheet.get_clip())  #set and get subimage
 
 		self.image = pygame.transform.scale(self.image, (300,300))
 		self.index += 1
-		self.lives = 4
+		self.lives = 3
 
 		#determining the position
 
@@ -984,6 +986,12 @@ class ChickenController:
 				elif event.type == pygame.KEYDOWN:	
 					k = event.key
 
+					if k == pygame.K_SPACE or k == pygame.K_LSHIFT:  #if press space or shift, then make an egg object, which is the egg being shot
+						if self.model.chicken.xvel > 0:
+							self.model.Eggs.drop_eggs(self.model.chicken.rect.left, self.model.chicken.rect.top, self.model.chicken.xvel)
+						else:
+							self.model.Eggs.drop_eggs(self.model.chicken.rect.right, self.model.chicken.rect.top, self.model.chicken.xvel)
+
 					if k == pygame.K_DOWN:
 						self.model.chicken.yvel = 12
 						self.model.chicken.animation_speed = 0.20  #flaps slower if going down
@@ -998,11 +1006,6 @@ class ChickenController:
 					if k == pygame.K_LEFT:
 						self.model.chicken.xvel = -12
 
-					if k ==pygame.K_SPACE:    #if press space, then make an egg object, which the egg being shot
-						if self.model.chicken.xvel > 0:
-							self.model.Eggs.drop_eggs(self.model.chicken.rect.left, self.model.chicken.rect.top, self.model.chicken.xvel)
-						else:
-							self.model.Eggs.drop_eggs(self.model.chicken.rect.right, self.model.chicken.rect.top, self.model.chicken.xvel)
 
 
 				elif event.type == pygame.KEYUP:
@@ -1011,11 +1014,14 @@ class ChickenController:
 					if k == pygame.K_DOWN and self.model.chicken.yvel == 12:
 						self.model.chicken.yvel = -3   #makes the chicken continually float up
 						self.model.chicken.animation_speed = 0.10		
+
 					if k == pygame.K_UP and self.model.chicken.yvel == -12:
 						self.model.chicken.yvel = -3  #makes the chicken continually float up
 						self.model.chicken.animation_speed = 0.10	
+
 					if k == pygame.K_LEFT and self.model.chicken.xvel == -12:
 						self.model.chicken.xvel = -.01
+
 					if k == pygame.K_RIGHT and self.model.chicken.xvel == 12:
 						self.model.chicken.xvel = .01
 
@@ -1084,6 +1090,8 @@ class ChickenMain(object):
 			done, restart, quit = self.controller.process_events(self.model.alive)
 			self.model.update(dt, self.model.alive, start)
 			self.view.draw(self.model.alive, start)
+			self.clock.tick(FRAMERATE)
+
 
 			if restart ==  True:
 				self.restart()
@@ -1138,6 +1146,13 @@ class ChickenMain(object):
 					self.view.draw(self.model.alive, start)
 
 					self.clock.tick(FRAMERATE)
+					if restart ==  True:
+						self.restart()
+					elif quit ==  True:
+						loop = False
+						pygame.quit()
+						sys.exit()
+						break	
 				done = True		
 
 
@@ -1149,7 +1164,10 @@ class ChickenMain(object):
 					count = 0
                 if self.model.score > count:
                     count = self.model.score
-                pickle.dump(count,open(CURR_DIR + '/hiscore.txt', 'wb'))           
+                pickle.dump(count,open(CURR_DIR + '/hiscore.txt', 'wb'))  
+
+                self.gameover()
+
 
 
 
@@ -1159,4 +1177,3 @@ class ChickenMain(object):
 if __name__ == '__main__':
 	MainWindow = ChickenMain()
 	MainWindow.MainLoop()
-	MainWindow.gameover()
