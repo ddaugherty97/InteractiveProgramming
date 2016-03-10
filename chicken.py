@@ -10,6 +10,7 @@ import pygame, sys, os
 from pygame.locals import *
 import random, math
 import pickle
+import Lumpy
 
 FRAMERATE = 60
 
@@ -299,13 +300,20 @@ class EggShot(pygame.sprite.Sprite):
 		for hawk in hawks:
 			if self.hitbox.colliderect(hawk.hitbox):
 				if isinstance(hawk, Boss_Hawk):
-					self.model.score += 5000
+					hawk.lives -= 1
+					if hawk.lives == 0:
+						hawk.alive = False
+						hawk.yvel = 15
+						hawk.xvel = 0
+						self.model.score += 5000
+					self.kill()
+
 				else:
 					self.model.score += 1000
-				self.kill()
-				hawk.alive = False
-				hawk.yvel = 15
-				hawk.xvel = 0
+					self.kill()
+					hawk.alive = False
+					hawk.yvel = 15
+					hawk.xvel = 0
 
 
 class Eggs():
@@ -480,6 +488,7 @@ class Boss_Hawk(pygame.sprite.Sprite):
 
 		self.image = pygame.transform.scale(self.image, (300,300))
 		self.index += 1
+		self.lives = 2
 		
 
 		if top_hawk:   #if top hawk, then determines where the hawk will appear from on the top and bottom
