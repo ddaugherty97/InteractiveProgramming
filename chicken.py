@@ -505,7 +505,7 @@ class Boss_Hawk(pygame.sprite.Sprite):
 		self.animation_speed = 0.10  #animation speed of the hawk
 
 		self.width = 85  #width ofthe subimage
-		self.height = 69.97   #height of the subimage
+		self.height = 69.98   #height of the subimage
 
 		self.sheet.set_clip(pygame.Rect(self.index * self.width, self.sprite_num * self.height, self.width, self.height))
 		self.image = self.sheet.subsurface(self.sheet.get_clip())  #set and get subimage
