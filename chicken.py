@@ -33,8 +33,8 @@ class Cloud(pygame.sprite.Sprite):
 		pygame.sprite.Sprite.__init__(self)
 
 		self.image = pygame.image.load('cloud2.png')   #loading cloud picture
-		scale = random.random() + 1
-		self.image = pygame.transform.scale(self.image, (int(scale*200),int(scale*100)))   #scales the clouds to a randomly set size
+		self.scale = random.random() + 1
+		self.image = pygame.transform.scale(self.image, (int(self.scale*200),int(self.scale*100)))   #scales the clouds to a randomly set size
 		self.image.fill((255, 255, 255, 200), None, pygame.BLEND_RGBA_MULT)
 		if random.choice([True, False]):
 			self.image = pygame.transform.flip(self.image, True, False)   #randomly flips the clouds for variety
@@ -44,8 +44,8 @@ class Cloud(pygame.sprite.Sprite):
 		self.xpos = xpos
 		self.ypos = ypos
 		self.rect = pygame.Rect(self.xpos, self.ypos, self.image.get_width(), self.image.get_height())
-		self.yvel = scale*yvel
-		self.xvel = scale*xvel
+		self.yvel = yvel
+		self.xvel = xvel
 
 
 	def is_in_range(self):
@@ -61,7 +61,7 @@ class Cloud(pygame.sprite.Sprite):
 		Moves the rectangle based on x-vel and y-vel
 		"""
 
-		self.rect = self.rect.move(self.xvel, self.yvel)
+		self.rect = self.rect.move(self.scale * self.xvel, self.scale * self.yvel)
 
 
 class Sky():
@@ -512,7 +512,7 @@ class Plane(pygame.sprite.Sprite):
 		self.counter = 0.0  #counter for delay of start
 		self.index = 0  #column of the subimage
 		self.animation_speed = 0.10  #animation speed of the hawk
-
+		
 		self.width = 120  #width ofthe subimage
 		self.height = 62   #height of the subimage
 
@@ -558,13 +558,14 @@ class Horizon(pygame.sprite.Sprite):
 
 	def __init__(self):
 		pygame.sprite.Sprite.__init__(self)
-		self.image = pygame.image.load('horizon.png')
+		self.image = pygame.image.load('background.png')
 		self.xpos = 0
 		self.ypos = SCREEN_H
 		self.yvel = -1
-		self.animation_speed = 0.40
+		self.animation_speed = 0.50
 		self.dt_image = 0
 
+		self.image = pygame.transform.scale(self.image, (SCREEN_W, SCREEN_H/2))
 		self.rect = pygame.Rect(self.xpos, self.ypos, SCREEN_W, SCREEN_H/2)
 
 	def move(self):
@@ -622,7 +623,9 @@ class ChickenModel:
 		else:
 			self.sky.xvel = 0
 			self.sky.yvel = -10
+			
 			self.sky.left = False
+
 			self.sky.update()
 			self.plane_group.update(dt)
 			self.hawks.update(self.chicken, dt, start)
