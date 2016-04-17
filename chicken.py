@@ -12,6 +12,8 @@ import pygame, sys, os
 from pygame.locals import *
 import random, math
 import pickle
+import alsaaudio
+import audioop
 
 FRAMERATE = 60  #fps for the game
 
@@ -22,7 +24,6 @@ RED      = (255,   0,   0)
 SCREEN_W = 1600
 SCREEN_H = 900
 
-
 CURR_DIR = os.path.dirname(os.path.realpath(__file__))  #used for filepathing
 
 
@@ -32,6 +33,12 @@ class Cloud(pygame.sprite.Sprite):
 	"""
 
 	def __init__(self, xpos, ypos, xvel, yvel):
+		"""
+		xpos: x position of cloud on screen
+		ypos: y position of cloud on screen
+		xvel: speed in which cloud moves across the screen horizontally
+		yvel: speed in which cloud moves across the screen vertically
+		"""
 		pygame.sprite.Sprite.__init__(self)
 
 
@@ -42,7 +49,7 @@ class Cloud(pygame.sprite.Sprite):
 		self.scale = random.random() + 1  #scaling number for cloud size and cloud speed
 		self.image = pygame.transform.scale(self.image, (int(self.scale*200),int(self.scale*100)))   #scales the clouds to a randomly set size
 		self.image.fill((255, 255, 255, 200), None, pygame.BLEND_RGBA_MULT) #makes the clouds transparent for better visibility
-		if random.choice([True, False]):
+		if random.randint(0,1):
 			self.image = pygame.transform.flip(self.image, True, False)   #randomly flips the clouds for variety
 
 		#determining position
@@ -56,7 +63,7 @@ class Cloud(pygame.sprite.Sprite):
 
 	def is_in_range(self):
 		"""
-		checks if the cloud hit the top, or the right in regards to the starting screen
+		Checks if the cloud hit the top, or the right in regards to the starting screen
 		"""
 
 		return self.rect.bottom > 0 and self.rect.right > 0
@@ -75,8 +82,14 @@ class Sky():
 	Represents all the clouds in the game
 	"""
 
-	def __init__(self, model, left, xvel, yvel):
-		self.model = model
+	def __init__(self, left, xvel, yvel):
+		"""
+		left: Boolean to see if clouds are at start screen sequence
+		xvel: speed in which cloud moves across the screen horizontally
+		yvel: speed in which cloud moves across the screen vertically
+		"""
+
+		# self.model = model
 		self.clouds = pygame.sprite.Group() #creates a group to hold all clouds on the screen
 		self.left = left
 		self.xvel = xvel
@@ -154,10 +167,12 @@ class Chicken(pygame.sprite.Sprite):
 		self.hitbox = pygame.Rect(self.xpos + 25, self.ypos + 25, 50, 50)  #hitbox of the chicken, defined as 3/4 of its size
 		
 
-
 	def move(self, xvel, yvel):
 		"""
 		Moves the chicken around based on its rectangle
+
+		xvel: speed in which chicken moves across the screen horizontally
+		yvel: speed in which chicken moves across the screen vertically
 		"""
 		if self.alive:
 			if not self.rect.right <= SCREEN_W:    #checks boundaries: top, bottom, left, right, and if out will reset it to be just inside the boundary
@@ -176,6 +191,10 @@ class Chicken(pygame.sprite.Sprite):
 	def update(self, hawks, dt, alive):
 		"""
 		Moves the chicken
+
+		hawks: array of existing hawks on the screen
+		dt: updated time
+		alive: boolean to check if chicken is alive
 		"""
 
 
@@ -211,12 +230,14 @@ class Chicken(pygame.sprite.Sprite):
 	def collide(self, hawks):
 		"""
 		Checks for collisions with hawks and chickens
+
+		hawks: array of existing hawks on the screen
 		"""
 
 		for hawk in hawks:
 			if self.hitbox.colliderect(hawk.hitbox):  #checks for collision between hitboxes
-				self.alive = False  #officially rules the chicken as dead
-				self.yvel = 15   #the chicken just drops off the screen
+				self.alive = False  #officially rules the hawk as dead
+				self.yvel = 10   #the chicken just drops off the screen
 				self.xvel = 0
 
 	def correct_boxes(self):
@@ -233,6 +254,13 @@ class EggShot(pygame.sprite.Sprite):
 	"""
 
 	def __init__(self, side, top, xvel, model):
+		"""
+		side: side of the rectangle the chicken's butt is on
+		top: top of the chicken rectangle box
+		xvel: speed in which the egg travels across the screen horizontally
+		model: model of the program
+		"""
+
 		pygame.sprite.Sprite.__init__(self)
 
 
@@ -277,15 +305,20 @@ class EggShot(pygame.sprite.Sprite):
 	def move(self, xvel, yvel):
 		"""
 		Moves the egg, making it drop
+
+		xvel: speed in which the egg travels across the screen horizontally
+		yvel: speed in which the egg travels across the screen vertically
 		"""
 
 		self.rect = self.rect.move(xvel, yvel)
 		self.hitbox = self.hitbox.move(xvel, yvel)	
 
 	def update(self, hawks, dt):
-	
 		"""
 		Updates the egg, making it fall, checking for range and collisions.
+
+		hawks: array of existing hawks on the screen
+		dt: updated time
 		"""
 		self.dt_image +=dt
 
@@ -307,20 +340,20 @@ class EggShot(pygame.sprite.Sprite):
 	def collide(self, hawks):
 		"""
 		Checks for collisions with hawks
+
+		hawks: array of existing hawks on the screen
 		"""
 
 		for hawk in hawks:
 			if self.hitbox.colliderect(hawk.hitbox):
 				if isinstance(hawk, Boss_Hawk):    #if the hawk is a Boss, then increment the score differently
-					self.hitbox = self.hitbox.move(-5000, -5000)
-					self.kill()
 					hawk.lives -= 1
 					if hawk.lives == 0:
 						hawk.alive = False    #hawk is officially no longer alive
 						hawk.yvel = 15     #hawks drop off the screen
 						hawk.xvel = 0
 						self.model.score += 5000
-					
+					self.kill()
 
 				else:
 					self.model.score += 1000
@@ -336,6 +369,9 @@ class Eggs():
 	"""
 
 	def __init__(self, model):
+		"""
+		model: model for the program
+		"""
 
 		self.model = model
 		self.egggroup = pygame.sprite.Group()   #makes the Sprite Group for eggs
@@ -345,6 +381,10 @@ class Eggs():
 	def drop_eggs(self, side, top, xvel):
 		"""
 		Creates a new egg shot given a key press on space, adds it to the group
+
+		side: side of the rectangle the chicken's butt is on
+		top: top of the chicken's rectangle
+		xvel: speed in which the egg travels across the screen horizontally
 		"""
 		temp = EggShot(side, top, xvel, self.model)    
 
@@ -353,6 +393,9 @@ class Eggs():
 	def update(self, hawks, dt):
 		"""
 		updates the eggs, checking for out of range and moving them
+
+		hawks: array of existing hawks on the screen
+		dt: updated time
 		"""
 
 		for egg in self.egggroup:
@@ -370,6 +413,12 @@ class Hawk(pygame.sprite.Sprite):
 	"""
 
 	def __init__(self, pos, xvel, top_hawk):
+		"""
+		pos: position of hawk on the screen
+		xvel: speed in which the hawk travels across the screen horizontally
+		top_hawk: boolean determining whether hawk initilizes at top/bottom of screen or side of screen
+		"""
+
 		pygame.sprite.Sprite.__init__(self)
 
 
@@ -437,6 +486,10 @@ class Hawk(pygame.sprite.Sprite):
 	def update(self, chicken, dt, start):
 		"""
 		Updates hawks to chase the chicken
+
+		chicken: chicken object
+		dt: updated time
+		start: boolean determing whether game has started yet
 		"""
 
 		self.dt_image += dt
@@ -489,6 +542,12 @@ class Boss_Hawk(pygame.sprite.Sprite):
 	"""
 
 	def __init__(self, pos, xvel, top_hawk):
+		"""
+		pos: position of hawk on the screen
+		xvel: speed in which the hawk travels across the screen horizontally
+		top_hawk: boolean determining whether hawk initilizes at top/bottom of screen or side of screen
+		"""
+
 		pygame.sprite.Sprite.__init__(self)
 
 
@@ -505,7 +564,7 @@ class Boss_Hawk(pygame.sprite.Sprite):
 		self.animation_speed = 0.10  #animation speed of the hawk
 
 		self.width = 85  #width ofthe subimage
-		self.height = 69.98   #height of the subimage
+		self.height = 69.95   #height of the subimage
 
 		self.sheet.set_clip(pygame.Rect(self.index * self.width, self.sprite_num * self.height, self.width, self.height))
 		self.image = self.sheet.subsurface(self.sheet.get_clip())  #set and get subimage
@@ -556,6 +615,10 @@ class Boss_Hawk(pygame.sprite.Sprite):
 	def update(self, chicken, dt, start):
 		"""
 		Updates hawks to chase the chicken
+
+		chicken: chicken object
+		dt: updated time
+		start: boolean determing whether game has started
 		"""
 
 		self.dt_image += dt
@@ -586,8 +649,6 @@ class Boss_Hawk(pygame.sprite.Sprite):
 					self.image = self.sheet.subsurface(self.sheet.get_clip())  
 				
 		else:
-			if not self.is_in_range():
-				self.kill()
 
 			self.sheet.set_clip(pygame.Rect(0 * self.width, 5 * self.height, self.width -17, self.height)) #subimage for dead boss
 			self.image = self.sheet.subsurface(self.sheet.get_clip())
@@ -611,6 +672,9 @@ class Flock():
 	"""
 
 	def __init__(self, model):
+		"""
+		model: model for the game
+		"""
 
 		self.model = model
 
@@ -634,6 +698,10 @@ class Flock():
 	def update(self, chicken, dt, start):		
 		"""
 		Updates hawks in the flock, checks if they're still in range
+
+		chicken: chicken object
+		dt: updated time
+		start: boolean determining whether game has started
 		"""
 
 		if self.model.score >= self.threshold:    #if the score passes the regular threshold, make a new hawk
@@ -655,8 +723,8 @@ class Flock():
 				Boss_Hawk(random.randint(-300,SCREEN_H), random.randint(1,4), False).add(self.hawkfleet)
 				self.num_hawks += 1
 
-			self.boss_counter += 1  #increment the counter 
-			self.boss_threshold = self.boss_threshold + self.boss_counter*15000  #set the new threshold to be a function higher than the previous one
+			self.boss_counter += 2   #increment the counter 
+			self.boss_threshold = self.boss_threshold + self.boss_counter*10000  #set the new threshold to be a function higher than the previous one
 
 		for hawk in self.hawkfleet:
 
@@ -722,9 +790,10 @@ class Plane(pygame.sprite.Sprite):
 		self.rect = self.rect.move(self.xvel, self.yvel)
 
 	def update(self, dt):
-
 		"""
 		updates the plane, basically making it move
+
+		dt: updated time
 		"""
 
 		if self.rect.bottom < -100:   #if it's out of the screen, then kill the plane
@@ -775,6 +844,8 @@ class Horizon(pygame.sprite.Sprite):
 	def update(self, dt):
 		"""
 		updates the horizon to slowly rise, making it appear as though you were falling in the sky
+
+		dt: updated time
 		"""
 		if not self.rect.bottom < SCREEN_H:  #makes sure the picture doesn't come off the bottom of the screen
 			self.dt_image += dt   
@@ -808,11 +879,15 @@ class ChickenModel:
 
 		self.hawks = Flock(self)
 
-		self.sky = Sky(self, True, -10, 0)
+		self.sky = Sky(True, -10, 0)
 
 	def update(self, dt, alive, start):
 		"""
 		Updates all the stuff
+
+		dt: updated time
+		alive: boolean determing whether chicken is alive or not
+		start: boolean determining whether game has started
 		"""
 
 		if start:   #separate updating for the start screen
@@ -849,6 +924,8 @@ class ChickenModel:
 	def update_score(self, start):
 		"""
 		Increements the score by 10 
+
+		start: boolean determining whether game has started
 		"""
 		if not start:
 			self.score += 10
@@ -857,6 +934,8 @@ class ChickenModel:
 	def get_drawables(self, start):
 		"""
 		Gives a list of things to draw in view
+
+		start: boolean determining whether game has started
 		"""
 		if start:   #different list for the start screen
 			return [self.horizon_group, self.sky.clouds, self.hawks.hawkfleet, self.chicken_sprite, self.Eggs.egggroup, self.plane_group]
@@ -868,6 +947,10 @@ class ChickenView:
 	View for Game
 	"""
 	def __init__(self, model):
+		"""
+		model: model for game
+		"""
+
 		pygame.init() 
 
 		self.width = SCREEN_W
@@ -886,7 +969,7 @@ class ChickenView:
 
 		self.start_screen = self.font2.render('CAP\'N CHICKEN', False, RED)
 		self.start_screen1 = self.font.render('USE THE ARROW KEYS TO MOVE', False, BLACK)
-		self.start_screen2= self.font.render('USE SPACE TO FIRE EGGS', False, BLACK)
+		self.start_screen2= self.font.render('SCREAM TO FIRE EGGS', False, BLACK)
 		self.start_screen3 = self.font.render('KILL AND DODGE VILLANOUS HAWKS', False, BLACK)
 		self.start_screen4 = self.font.render('LAST AS LONG AS YOU CAN!!!', False, BLACK)
 		self.start_screen5 = self.font3.render('PRESS ANY KEY TO START', False, RED)
@@ -903,9 +986,13 @@ class ChickenView:
 		else: 
 			self.hiscore = '0'
 		self.hiscore_surf = self.font.render("HIGH: {}".format(self.hiscore), False, BLACK)
+	
 	def fill_gradient(self, color, gradient):
 		"""
 		fill the surface with a gradient 
+
+		color: pygame color
+		gradient: pygame color
 		"""
 		rect = self.screen.get_rect()
 		x1 = rect.left
@@ -926,6 +1013,9 @@ class ChickenView:
 	def draw(self, alive, start):
 		"""
 		Redraws game windows, fetching drawables from model
+
+		alive: boolean determining whether chicken is alive or not
+		start: boolean determining whether game has started
 		"""
 		self.fill_gradient(pygame.Color(0,34,102), WHITE)  #draws the gradient
 
@@ -937,7 +1027,7 @@ class ChickenView:
 		if start:   #makes the start screen text
 			self.screen.blit(self.start_screen, (SCREEN_W/2 - 270, 230))
 			self.screen.blit(self.start_screen1, (SCREEN_W/2 - 300, 375))
-			self.screen.blit(self.start_screen2, (SCREEN_W/2 - 270, 475))
+			self.screen.blit(self.start_screen2, (SCREEN_W/2 - 240, 475))
 			self.screen.blit(self.start_screen3, (SCREEN_W/2 - 375, 575))
 			self.screen.blit(self.start_screen4, (SCREEN_W/2 - 280, 675))
 			self.screen.blit(self.start_screen5, (SCREEN_W/2 - 390, 775))
@@ -966,31 +1056,35 @@ class ChickenController:
 	"""
 
 	def __init__(self, model):
+		"""
+		model: model for game
+		"""
+
 		self.model = model
 		self.done = False
 		self.restart = False
 		self.quit = False
+		self.counter = 0
+		self.volume_threshold = 500
 
-	def process_events(self, alive):		
+	def process_events(self, alive, dt = 0):		
 		"""
 		Manages keypresses
+
+		alive: boolean determining whether chicken is alive or not
+		dt: updated time
 		"""
+
 		pygame.event.pump
 
 		if alive:   #if alive, allow all controls
-
+			self.eggFire(dt)
 			for event in pygame.event.get():
 				if event.type == QUIT:
 					self.done = True
-				
+
 				elif event.type == pygame.KEYDOWN:	
 					k = event.key
-
-					if k == pygame.K_SPACE or k == pygame.K_LSHIFT:  #if press space or shift, then make an egg object, which is the egg being shot
-						if self.model.chicken.xvel > 0:
-							self.model.Eggs.drop_eggs(self.model.chicken.rect.left, self.model.chicken.rect.top, self.model.chicken.xvel)
-						else:
-							self.model.Eggs.drop_eggs(self.model.chicken.rect.right, self.model.chicken.rect.top, self.model.chicken.xvel)
 
 					if k == pygame.K_DOWN:
 						self.model.chicken.yvel = 12
@@ -1006,7 +1100,7 @@ class ChickenController:
 					if k == pygame.K_LEFT:
 						self.model.chicken.xvel = -12
 
-
+					# if k == pygame.K_SPACE:    #if press space, then make an egg object, which the egg being shot
 
 				elif event.type == pygame.KEYUP:
 					k = event.key
@@ -1014,14 +1108,11 @@ class ChickenController:
 					if k == pygame.K_DOWN and self.model.chicken.yvel == 12:
 						self.model.chicken.yvel = -3   #makes the chicken continually float up
 						self.model.chicken.animation_speed = 0.10		
-
 					if k == pygame.K_UP and self.model.chicken.yvel == -12:
 						self.model.chicken.yvel = -3  #makes the chicken continually float up
 						self.model.chicken.animation_speed = 0.10	
-
 					if k == pygame.K_LEFT and self.model.chicken.xvel == -12:
 						self.model.chicken.xvel = -.01
-
 					if k == pygame.K_RIGHT and self.model.chicken.xvel == 12:
 						self.model.chicken.xvel = .01
 
@@ -1035,20 +1126,45 @@ class ChickenController:
 
 					if k == pygame.K_r:
 						self.done = True
-						self.restart = True				
+						self.restart = True
 
-		return self.done, self.restart, self.quit							
+		return self.done, self.restart, self.quit		
 
+	def eggFire(self, dt):
+		"""
+		Checks if volume is loud enough to fire an egg periodically
 
-	
+		dt: updated time
+		"""
+
+		self.counter += dt
+		if self.counter > 0.125:        # Will check if volume is loud enough after enough ticks happen (Reduces lag)
+			inp = alsaaudio.PCM(alsaaudio.PCM_CAPTURE,0)
+			inp.setchannels(1)
+			inp.setformat(alsaaudio.PCM_FORMAT_S16_LE)
+			inp.setperiodsize(160)
+			l,data = inp.read()        # Read volume levels
+			if l:
+				volume = audioop.rms(data,2)
+			self.counter = 0           # Reset counter
+			if volume >= self.volume_threshold:    #if loud enough, then make an egg object, which the egg being shot
+				if self.model.chicken.xvel > 0:
+					self.model.Eggs.drop_eggs(self.model.chicken.rect.left, self.model.chicken.rect.top, self.model.chicken.xvel)
+				else:
+					self.model.Eggs.drop_eggs(self.model.chicken.rect.right, self.model.chicken.rect.top, self.model.chicken.xvel)
+
 
 class ChickenMain(object):
 	"""
 	Main Class
 	"""
 
-
 	def __init__(self, width = SCREEN_W, height = SCREEN_H):
+		"""
+		width: width of the screen in pixels
+		height: height of the screen in pixels
+		"""
+
 		self.width = width
 		self.height = height
 		self.clock = pygame.time.Clock()
@@ -1090,8 +1206,6 @@ class ChickenMain(object):
 			done, restart, quit = self.controller.process_events(self.model.alive)
 			self.model.update(dt, self.model.alive, start)
 			self.view.draw(self.model.alive, start)
-			self.clock.tick(FRAMERATE)
-
 
 			if restart ==  True:
 				self.restart()
@@ -1121,11 +1235,11 @@ class ChickenMain(object):
 				t = pygame.time.get_ticks()
 				dt = (t - lastGetTicks) / 1000.0
 				lastGetTicks = t
-
+				
 				self.model.update(dt, self.model.alive, start)
 				self.view.draw(self.model.alive, start)
 				if not start:
-					done, restart, quit = self.controller.process_events(self.model.alive)
+					done, restart, quit = self.controller.process_events(self.model.alive, dt)
 				else:
 					for event in pygame.event.get():
 						if event.type == pygame.KEYDOWN:
@@ -1140,19 +1254,12 @@ class ChickenMain(object):
 					t = pygame.time.get_ticks()
 					dt = (t - lastGetTicks) / 1000.0
 					lastGetTicks = t
-
-					done, restart, quit = self.controller.process_events(self.model.alive)
+					
+					done, restart, quit = self.controller.process_events(self.model.alive, dt)
 					self.model.update(dt, self.model.alive, start)
 					self.view.draw(self.model.alive, start)
 
 					self.clock.tick(FRAMERATE)
-					if restart ==  True:
-						self.restart()
-					elif quit ==  True:
-						loop = False
-						pygame.quit()
-						sys.exit()
-						break	
 				done = True		
 
 
@@ -1164,10 +1271,7 @@ class ChickenMain(object):
 					count = 0
                 if self.model.score > count:
                     count = self.model.score
-                pickle.dump(count,open(CURR_DIR + '/hiscore.txt', 'wb'))  
-
-                self.gameover()
-
+                pickle.dump(count,open(CURR_DIR + '/hiscore.txt', 'wb'))           
 
 
 
@@ -1177,3 +1281,4 @@ class ChickenMain(object):
 if __name__ == '__main__':
 	MainWindow = ChickenMain()
 	MainWindow.MainLoop()
+	MainWindow.gameover()
